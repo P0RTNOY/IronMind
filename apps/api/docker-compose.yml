@@ -1,0 +1,48 @@
+services:
+  firestore:
+    image: google/cloud-sdk:525.0.0
+    environment:
+      PROJECT_ID: ${PROJECT_ID}
+    command: >
+      bash -lc "gcloud config set project ${PROJECT_ID} && gcloud beta emulators firestore start --host-port=0.0.0.0:8080 --project=${PROJECT_ID} --quiet"
+    ports:
+      - "8081:8080"
+
+  api:
+    build: .
+    depends_on:
+      - firestore
+    volumes:
+      - ./secrets/firebase_sa.json:/secrets/firebase_sa.json:ro
+    environment:
+      # App
+      ENV: "dev"
+      PROJECT_ID: ${PROJECT_ID}
+      GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
+      FRONTEND_ORIGIN: "http://localhost:5173"
+      APP_VERSION: "local"
+
+      # IMPORTANT: tell Firestore client to use emulator
+      FIRESTORE_EMULATOR_HOST: "firestore:8080"
+
+      # Google Auth
+      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase_sa.json"
+
+      # Admin
+      ADMIN_UIDS: ${ADMIN_UIDS:-[]}
+
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_ID_FUNDAMENTALS_ONE_TIME: ${STRIPE_PRICE_ID_FUNDAMENTALS_ONE_TIME:-}
+      STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY: ${STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY:-}
+      CHECKOUT_SUCCESS_URL: "http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}"
+      CHECKOUT_CANCEL_URL: "http://localhost:5173/cancel"
+
+      # Firebase Admin:
+      # Keep base64 empty. (We’ll deal with tokens in “Auth testing” below.)
+      FIREBASE_ADMIN_SDK_JSON_BASE64: ""
+      FIREBASE_PROJECT_ID: ${PROJECT_ID}
+
+    ports:
+      - "8080:8080"

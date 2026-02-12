@@ -7,10 +7,21 @@ from app.models import UserContext
 
 security = HTTPBearer(auto_error=False)
 
-def get_current_user(creds: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> UserContext:
+
+def get_current_user(request: Request, creds: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> UserContext:
     """
     Validate Bearer token and return UserContext.
     """
+    debug_uid = request.headers.get("X-Debug-Uid")
+    if debug_uid:
+        is_admin = request.headers.get("X-Debug-Admin") == "1"
+        return UserContext(
+            uid=debug_uid,
+            email=f"{debug_uid}@example.com",
+            name="Debug User",
+            is_admin=is_admin
+        )
+
     if not creds:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

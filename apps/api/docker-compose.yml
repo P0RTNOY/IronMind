@@ -13,6 +13,7 @@ services:
     depends_on:
       - firestore
     volumes:
+      - .:/app
       - ./secrets/firebase_sa.json:/secrets/firebase_sa.json:ro
     environment:
       # App
@@ -23,7 +24,7 @@ services:
       APP_VERSION: "local"
 
       # IMPORTANT: tell Firestore client to use emulator
-      FIRESTORE_EMULATOR_HOST: "firestore:8080"
+      # FIRESTORE_EMULATOR_HOST: "firestore:8080"
 
       # Google Auth
       GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase_sa.json"

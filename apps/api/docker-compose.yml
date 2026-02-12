@@ -20,7 +20,7 @@ services:
       ENV: "dev"
       PROJECT_ID: ${PROJECT_ID}
       GOOGLE_CLOUD_PROJECT: ${PROJECT_ID}
-      FRONTEND_ORIGIN: "http://localhost:5173"
+      FRONTEND_ORIGIN: "http://localhost:3000"
       APP_VERSION: "local"
 
       # IMPORTANT: tell Firestore client to use emulator
@@ -37,8 +37,8 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PRICE_ID_FUNDAMENTALS_ONE_TIME: ${STRIPE_PRICE_ID_FUNDAMENTALS_ONE_TIME:-}
       STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY: ${STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY:-}
-      CHECKOUT_SUCCESS_URL: "http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}"
-      CHECKOUT_CANCEL_URL: "http://localhost:5173/cancel"
+      CHECKOUT_SUCCESS_URL: "http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}"
+      CHECKOUT_CANCEL_URL: "http://localhost:3000/cancel"
 
       # Firebase Admin:
       # Keep base64 empty. (We’ll deal with tokens in “Auth testing” below.)

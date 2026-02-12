@@ -43,20 +43,24 @@ app = FastAPI(
     title="Iron Mind API",
     version=settings.APP_VERSION,
     docs_url="/docs" if settings.ENV != "prod" else None,
-    redoc_url=None
+    redoc_url=None,
+    servers=[
+        {"url": "http://localhost:8080", "description": "Local Docker"}
+    ]
 )
+
+
+# Custom Middleware
+app.add_middleware(RequestIdMiddleware)
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Custom Middleware
-app.add_middleware(RequestIdMiddleware)
 
 # Routers
 app.include_router(health.router, tags=["Health"])

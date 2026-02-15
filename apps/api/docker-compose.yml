@@ -15,6 +15,7 @@ services:
     volumes:
       - .:/app
       - ./secrets/firebase_sa.json:/secrets/firebase_sa.json:ro
+      - ./secrets/ironmind-486909-5f60a6da2bd6.json:/secrets/ironmind-486909-5f60a6da2bd6.json:ro
     environment:
       # App
       ENV: "dev"
@@ -27,7 +28,7 @@ services:
       # FIRESTORE_EMULATOR_HOST: "firestore:8080"
 
       # Google Auth
-      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/firebase_sa.json"
+      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/ironmind-486909-5f60a6da2bd6.json"
 
       # Admin
       ADMIN_UIDS: ${ADMIN_UIDS:-[]}
@@ -39,6 +40,7 @@ services:
       STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY: ${STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY:-}
       CHECKOUT_SUCCESS_URL: "http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}"
       CHECKOUT_CANCEL_URL: "http://localhost:3000/cancel"
+      GCS_BUCKET_NAME: "ironmind-uploads-dev-123"
 
       # Firebase Admin:
       # Keep base64 empty. (We’ll deal with tokens in “Auth testing” below.)

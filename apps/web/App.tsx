@@ -1,7 +1,7 @@
-
 import React, { Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar, Loading } from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import { useAuth } from './hooks/useAuth';
 
 // Lazy load pages for performance
@@ -10,8 +10,13 @@ const CourseDetail = lazy(() => import('./pages/CourseDetail'));
 const Search = lazy(() => import('./pages/Search'));
 const Me = lazy(() => import('./pages/Me'));
 const Access = lazy(() => import('./pages/Access'));
-const Admin = lazy(() => import('./pages/Admin'));
 const DevAuth = lazy(() => import('./pages/DevAuth'));
+
+// Admin Pages
+const AdminDashboard = lazy(() => import('./pages/Admin'));
+const AdminCourses = lazy(() => import('./pages/admin/Courses'));
+const AdminLessons = lazy(() => import('./pages/admin/Lessons'));
+const AdminPlans = lazy(() => import('./pages/admin/Plans'));
 
 const App: React.FC = () => {
   const { loading, isAuthorized } = useAuth();
@@ -25,23 +30,42 @@ const App: React.FC = () => {
         <main className="flex-grow">
           <Suspense fallback={<Loading />}>
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/program/:id" element={<CourseDetail />} />
               <Route path="/search" element={<Search />} />
-              <Route path="/dev-auth" element={<DevAuth />} />
-              
+              <Route path="/auth-debug" element={<DevAuth />} />
+
               {/* Protected Routes */}
-              <Route 
-                path="/me" 
-                element={isAuthorized ? <Me /> : <Navigate to="/dev-auth" replace />} 
+              <Route
+                path="/me"
+                element={isAuthorized ? <Me /> : <Navigate to="/auth-debug" replace />}
               />
-              <Route 
-                path="/access" 
-                element={isAuthorized ? <Access /> : <Navigate to="/dev-auth" replace />} 
+              <Route
+                path="/access"
+                element={isAuthorized ? <Access /> : <Navigate to="/auth-debug" replace />}
               />
-              <Route 
-                path="/admin" 
-                element={isAuthorized ? <Admin /> : <Navigate to="/dev-auth" replace />} 
+
+              {/* Admin Routes */}
+              <Route
+                path="/admin"
+                element={isAuthorized ? <AdminLayout><AdminDashboard /></AdminLayout> : <Navigate to="/auth-debug" replace />}
+              />
+              <Route
+                path="/admin/dashboard"
+                element={isAuthorized ? <AdminLayout><AdminDashboard /></AdminLayout> : <Navigate to="/auth-debug" replace />}
+              />
+              <Route
+                path="/admin/courses"
+                element={isAuthorized ? <AdminLayout><AdminCourses /></AdminLayout> : <Navigate to="/auth-debug" replace />}
+              />
+              <Route
+                path="/admin/lessons"
+                element={isAuthorized ? <AdminLayout><AdminLessons /></AdminLayout> : <Navigate to="/auth-debug" replace />}
+              />
+              <Route
+                path="/admin/plans"
+                element={isAuthorized ? <AdminLayout><AdminPlans /></AdminLayout> : <Navigate to="/auth-debug" replace />}
               />
 
               {/* Fallback */}
@@ -49,7 +73,7 @@ const App: React.FC = () => {
             </Routes>
           </Suspense>
         </main>
-        
+
         <footer className="py-12 px-4 border-t border-white/5 mt-20">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-[10px] font-black tracking-widest text-gray-700 uppercase">

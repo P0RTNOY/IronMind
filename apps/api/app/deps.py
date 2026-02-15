@@ -45,6 +45,33 @@ def get_current_user(request: Request, creds: Optional[HTTPAuthorizationCredenti
     # Check admin status based on config
     is_admin = uid in settings.ADMIN_UIDS
     
+    # Lazy User Sync
+    try:
+        from app.repos.firestore import get_db
+        from google.cloud import firestore
+        
+        db = get_db()
+        user_ref = db.collection("users").document(uid)
+        
+        # Use set with merge=True to be idempotent and non-destructive
+        # We update lastSeenAt on every auth.
+        user_data = {
+            "uid": uid,
+            "lastSeenAt": firestore.SERVER_TIMESTAMP
+        }
+        if email:
+            user_data["email"] = email
+        if name:
+            user_data["name"] = name
+            
+        user_ref.set(user_data, merge=True)
+        
+    except Exception as e:
+        # Do not fail the request if user sync fails
+        # Log it and proceed
+        import logging
+        logging.getLogger("app.deps").warning(f"Failed to sync user {uid}: {e}")
+
     return UserContext(
         uid=uid,
         email=email,

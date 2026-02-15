@@ -26,8 +26,13 @@ export interface CoursePublic {
   updatedAt?: string | null;
 }
 
+
 export interface CourseAdmin extends CoursePublic {
   tags: string[];
+  coverImagePath?: string | null;
+  stripePriceIdOneTime?: string | null;
+  stripePriceIdSubscription?: string | null;
+  currency?: string;
 }
 
 export interface LessonPublic {
@@ -72,6 +77,22 @@ export interface MetricsOverview {
 
 export interface AccessCheckResponse {
   allowed: boolean;
+}
+
+export interface LessonAdmin extends LessonPublic {
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface PlanAdmin extends PlanPublic {
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UploadSignResponse {
+  uploadUrl: string;
+  publicUrl: string;
+  objectPath: string;
 }
 
 export interface APIResponse<T> {

@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     CHECKOUT_SUCCESS_URL: str = "http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}"
     CHECKOUT_CANCEL_URL: str = "http://localhost:5173/cancel"
     
+    # GCS
+    GCS_BUCKET_NAME: Optional[str] = None
+    GCS_PUBLIC_BASE_URL: str = "https://storage.googleapis.com"
+    
     CURRENCY_DEFAULT: str = "ils"
     APP_VERSION: str = "0.0.1"
 

@@ -1,4 +1,5 @@
 import stripe
+import datetime
 from typing import Optional, Literal
 from app.config import settings
 
@@ -19,22 +20,53 @@ def create_checkout_session(
     if purchase_type == "one_time":
         if not course_id:
             raise ValueError("course_id is required for one_time purchase")
-        price_id = settings.STRIPE_PRICE_ID_FUNDAMENTALS_ONE_TIME
         mode = "payment"
         metadata_course_id = course_id
     elif purchase_type == "subscription":
-        price_id = settings.STRIPE_PRICE_ID_MEMBERSHIP_MONTHLY
         mode = "subscription"
-        metadata_course_id = "membership" # Special flag for webhook
+        metadata_course_id = "membership"
+    else:
+        raise ValueError(f"Invalid purchase_type: {purchase_type}")
+
+    # For now, if price_id is passed, use it. 
+    # If not passed, we fail (Prod) or fallback (Dev - optional, but we decided NO fallback for consistency).
+    # Since I need to change signature, let's assume the router passes the correct ID.
+    pass
+
+def create_checkout_session(
+    uid: str, 
+    purchase_type: Literal["one_time", "subscription"], 
+    course_id: Optional[str] = None,
+    price_id: Optional[str] = None
+) -> str:
+    """
+    Create a Stripe Checkout Session.
+    """
+    if not settings.STRIPE_SECRET_KEY:
+        raise RuntimeError("Stripe API key not configured")
+        
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if purchase_type == "one_time":
+        if not course_id:
+            raise ValueError("course_id is required for one_time purchase")
+        mode = "payment"
+        metadata_course_id = course_id
+    elif purchase_type == "subscription":
+        mode = "subscription"
+        # membership usually doesn't have course_id, but if linked to a course sub, it might.
+        # For general membership, course_id might be None.
+        metadata_course_id = course_id or "membership" 
     else:
         raise ValueError(f"Invalid purchase_type: {purchase_type}")
 
     if not price_id:
-        raise RuntimeError(f"Price ID for {purchase_type} not configured")
+        # STRICT: No fallback to config in this new version
+        raise ValueError(f"Price ID required for {purchase_type}")
 
     try:
         # Idempotency key to prevent duplicate sessions for same request
-        idempotency_key = f"checkout_{uid}_{purchase_type}_{metadata_course_id}"
+        idempotency_key = f"checkout_{uid}_{purchase_type}_{metadata_course_id}_{datetime.datetime.now().timestamp()}"
         
         session = stripe.checkout.Session.create(
             line_items=[{

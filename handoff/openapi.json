@@ -1,0 +1,2234 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Iron Mind API",
+        "version": "local"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8080",
+            "description": "Local Docker"
+        }
+    ],
+    "paths": {
+        "/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Health Check",
+                "operationId": "health_check_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses": {
+            "get": {
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get Courses",
+                "description": "List all published courses.",
+                "operationId": "get_courses_courses_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/CoursePublic"
+                                    },
+                                    "type": "array",
+                                    "title": "Response Get Courses Courses Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{course_id}": {
+            "get": {
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get Course",
+                "description": "Get a specific published course by ID.",
+                "operationId": "get_course_courses__course_id__get",
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CoursePublic"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/search": {
+            "get": {
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Search",
+                "description": "Search across published courses, lessons, and plans.",
+                "operationId": "search_search_get",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 0,
+                            "default": "",
+                            "title": "Q"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SearchResult"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get Me",
+                "description": "Return current user profile and admin status.",
+                "operationId": "get_me_me_get",
+                "responses": {
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserContext"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/checkout/session": {
+            "post": {
+                "tags": [
+                    "Checkout"
+                ],
+                "summary": "Create Checkout Session",
+                "description": "Create a Stripe Checkout Session.",
+                "operationId": "create_checkout_session_checkout_session_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckoutRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CheckoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/webhooks/stripe": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Stripe Webhook",
+                "description": "Handle Stripe Webhooks.",
+                "operationId": "stripe_webhook_webhooks_stripe_post",
+                "parameters": [
+                    {
+                        "name": "Stripe-Signature",
+                        "in": "header",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Stripe-Signature"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/courses": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List Courses",
+                "description": "List all courses (including unpublished).",
+                "operationId": "list_courses_admin_courses_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/CourseAdmin"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Courses Admin Courses Get"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create Course",
+                "operationId": "create_course_admin_courses_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CourseUpsertRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CourseAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/admin/courses/{course_id}": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update Course",
+                "operationId": "update_course_admin_courses__course_id__put",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CourseUpsertRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CourseAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete Course",
+                "operationId": "delete_course_admin_courses__course_id__delete",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course_id}/publish": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Publish Course",
+                "operationId": "publish_course_admin_courses__course_id__publish_post",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CourseAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course_id}/unpublish": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Unpublish Course",
+                "operationId": "unpublish_course_admin_courses__course_id__unpublish_post",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CourseAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course_id}/lessons": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List Lessons",
+                "operationId": "list_lessons_admin_courses__course_id__lessons_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/LessonAdmin"
+                                    },
+                                    "title": "Response List Lessons Admin Courses  Course Id  Lessons Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/lessons": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create Lesson",
+                "operationId": "create_lesson_admin_lessons_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LessonUpsertRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LessonAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/admin/lessons/{lesson_id}": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update Lesson",
+                "operationId": "update_lesson_admin_lessons__lesson_id__put",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "lesson_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Lesson Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LessonUpsertRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LessonAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete Lesson",
+                "operationId": "delete_lesson_admin_lessons__lesson_id__delete",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "lesson_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Lesson Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/admin/courses/{course_id}/plans": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List Plans",
+                "operationId": "list_plans_admin_courses__course_id__plans_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PlanAdmin"
+                                    },
+                                    "title": "Response List Plans Admin Courses  Course Id  Plans Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/plans": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create Plan",
+                "operationId": "create_plan_admin_plans_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlanUpsertRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PlanAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/admin/plans/{plan_id}": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update Plan",
+                "operationId": "update_plan_admin_plans__plan_id__put",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Plan Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlanUpsertRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PlanAdmin"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete Plan",
+                "operationId": "delete_plan_admin_plans__plan_id__delete",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Plan Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/admin/users": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List Users",
+                "operationId": "list_users_admin_users_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 50,
+                            "title": "Limit"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/users/{uid}/revoke": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Revoke Access",
+                "description": "Revoke all entitlements for a user.",
+                "operationId": "revoke_access_admin_users__uid__revoke_post",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "uid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Uid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                }
+            }
+        },
+        "/admin/metrics/overview": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Metrics",
+                "operationId": "get_metrics_admin_metrics_overview_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MetricsOverview"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/access/me": {
+            "get": {
+                "tags": [
+                    "Access"
+                ],
+                "summary": "Get Access Me",
+                "description": "Get current user's access status and entitlements.",
+                "operationId": "get_access_me_access_me_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AccessMeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ]
+            }
+        },
+        "/access/courses/{course_id}": {
+            "get": {
+                "tags": [
+                    "Access"
+                ],
+                "summary": "Check Course Access",
+                "description": "Check if user can access a specific course.\nReturns 200 { \"allowed\": true } if allowed.\nReturns 403 if not allowed.\nReturns 404 if course does not exist.",
+                "operationId": "check_course_access_access_courses__course_id__get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    },
+                    {
+                        "DebugHeaders": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "course_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Course Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AccessCheckResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "summary": "Root",
+                "operationId": "root__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AccessCheckResponse": {
+                "properties": {
+                    "allowed": {
+                        "type": "boolean",
+                        "title": "Allowed"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "allowed"
+                ],
+                "title": "AccessCheckResponse"
+            },
+            "AccessMeResponse": {
+                "properties": {
+                    "uid": {
+                        "type": "string",
+                        "title": "Uid"
+                    },
+                    "email": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Email"
+                    },
+                    "isAdmin": {
+                        "type": "boolean",
+                        "title": "Isadmin"
+                    },
+                    "membershipActive": {
+                        "type": "boolean",
+                        "title": "Membershipactive"
+                    },
+                    "membershipExpiresAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Membershipexpiresat"
+                    },
+                    "entitledCourseIds": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Entitledcourseids",
+                        "default": []
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "uid",
+                    "isAdmin",
+                    "membershipActive"
+                ],
+                "title": "AccessMeResponse"
+            },
+            "CheckoutRequest": {
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "one_time",
+                            "subscription"
+                        ],
+                        "title": "Type"
+                    },
+                    "courseId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Courseid"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "type"
+                ],
+                "title": "CheckoutRequest"
+            },
+            "CheckoutResponse": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "title": "Url"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "CheckoutResponse"
+            },
+            "CourseAdmin": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "one_time",
+                            "subscription"
+                        ],
+                        "title": "Type"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    },
+                    "coverImageUrl": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Coverimageurl"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "createdAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Createdat"
+                    },
+                    "updatedAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updatedat"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "titleHe",
+                    "descriptionHe",
+                    "type",
+                    "published"
+                ],
+                "title": "CourseAdmin"
+            },
+            "CoursePublic": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "one_time",
+                            "subscription"
+                        ],
+                        "title": "Type"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    },
+                    "createdAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Createdat"
+                    },
+                    "updatedAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updatedat"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "titleHe",
+                    "descriptionHe",
+                    "type",
+                    "published"
+                ],
+                "title": "CoursePublic"
+            },
+            "CourseUpsertRequest": {
+                "properties": {
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "one_time",
+                            "subscription"
+                        ],
+                        "title": "Type"
+                    },
+                    "published": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Published"
+                    },
+                    "coverImageUrl": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Coverimageurl"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "titleHe",
+                    "descriptionHe",
+                    "type"
+                ],
+                "title": "CourseUpsertRequest"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "LessonAdmin": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "courseId": {
+                        "type": "string",
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "movementCategory": {
+                        "type": "string",
+                        "title": "Movementcategory"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "vimeoVideoId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Vimeovideoid"
+                    },
+                    "orderIndex": {
+                        "type": "integer",
+                        "title": "Orderindex"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    },
+                    "createdAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Createdat"
+                    },
+                    "updatedAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updatedat"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "courseId",
+                    "titleHe",
+                    "descriptionHe",
+                    "movementCategory",
+                    "orderIndex",
+                    "published"
+                ],
+                "title": "LessonAdmin"
+            },
+            "LessonPublic": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "courseId": {
+                        "type": "string",
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "movementCategory": {
+                        "type": "string",
+                        "title": "Movementcategory"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "vimeoVideoId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Vimeovideoid"
+                    },
+                    "orderIndex": {
+                        "type": "integer",
+                        "title": "Orderindex"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "courseId",
+                    "titleHe",
+                    "descriptionHe",
+                    "movementCategory",
+                    "orderIndex",
+                    "published"
+                ],
+                "title": "LessonPublic"
+            },
+            "LessonUpsertRequest": {
+                "properties": {
+                    "courseId": {
+                        "type": "string",
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "movementCategory": {
+                        "type": "string",
+                        "title": "Movementcategory"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "vimeoVideoId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Vimeovideoid"
+                    },
+                    "orderIndex": {
+                        "type": "integer",
+                        "title": "Orderindex",
+                        "default": 0
+                    },
+                    "published": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Published"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "courseId",
+                    "titleHe",
+                    "descriptionHe",
+                    "movementCategory"
+                ],
+                "title": "LessonUpsertRequest"
+            },
+            "MetricsOverview": {
+                "properties": {
+                    "courses_total": {
+                        "type": "integer",
+                        "title": "Courses Total"
+                    },
+                    "courses_published": {
+                        "type": "integer",
+                        "title": "Courses Published"
+                    },
+                    "lessons_total": {
+                        "type": "integer",
+                        "title": "Lessons Total"
+                    },
+                    "lessons_published": {
+                        "type": "integer",
+                        "title": "Lessons Published"
+                    },
+                    "plans_total": {
+                        "type": "integer",
+                        "title": "Plans Total"
+                    },
+                    "plans_published": {
+                        "type": "integer",
+                        "title": "Plans Published"
+                    },
+                    "purchases_total": {
+                        "type": "integer",
+                        "title": "Purchases Total"
+                    },
+                    "subscriptions_total": {
+                        "type": "integer",
+                        "title": "Subscriptions Total"
+                    },
+                    "entitlements_total": {
+                        "type": "integer",
+                        "title": "Entitlements Total"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "courses_total",
+                    "courses_published",
+                    "lessons_total",
+                    "lessons_published",
+                    "plans_total",
+                    "plans_published",
+                    "purchases_total",
+                    "subscriptions_total",
+                    "entitlements_total"
+                ],
+                "title": "MetricsOverview"
+            },
+            "PlanAdmin": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "courseId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "pdfPath": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pdfpath"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    },
+                    "createdAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Createdat"
+                    },
+                    "updatedAt": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updatedat"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "titleHe",
+                    "descriptionHe",
+                    "published"
+                ],
+                "title": "PlanAdmin"
+            },
+            "PlanPublic": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "courseId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "pdfPath": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pdfpath"
+                    },
+                    "published": {
+                        "type": "boolean",
+                        "title": "Published"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "titleHe",
+                    "descriptionHe",
+                    "published"
+                ],
+                "title": "PlanPublic"
+            },
+            "PlanUpsertRequest": {
+                "properties": {
+                    "courseId": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Courseid"
+                    },
+                    "titleHe": {
+                        "type": "string",
+                        "title": "Titlehe"
+                    },
+                    "descriptionHe": {
+                        "type": "string",
+                        "title": "Descriptionhe"
+                    },
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags",
+                        "default": []
+                    },
+                    "pdfPath": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pdfpath"
+                    },
+                    "published": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Published"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "titleHe",
+                    "descriptionHe"
+                ],
+                "title": "PlanUpsertRequest"
+            },
+            "SearchResult": {
+                "properties": {
+                    "courses": {
+                        "items": {
+                            "$ref": "#/components/schemas/CoursePublic"
+                        },
+                        "type": "array",
+                        "title": "Courses",
+                        "default": []
+                    },
+                    "lessons": {
+                        "items": {
+                            "$ref": "#/components/schemas/LessonPublic"
+                        },
+                        "type": "array",
+                        "title": "Lessons",
+                        "default": []
+                    },
+                    "plans": {
+                        "items": {
+                            "$ref": "#/components/schemas/PlanPublic"
+                        },
+                        "type": "array",
+                        "title": "Plans",
+                        "default": []
+                    }
+                },
+                "type": "object",
+                "title": "SearchResult"
+            },
+            "UserContext": {
+                "properties": {
+                    "uid": {
+                        "type": "string",
+                        "title": "Uid"
+                    },
+                    "email": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Email"
+                    },
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "is_admin": {
+                        "type": "boolean",
+                        "title": "Is Admin",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "uid"
+                ],
+                "title": "UserContext"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        },
+        "securitySchemes": {
+            "HTTPBearer": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "DebugHeaders": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Debug-Uid",
+                "description": "DEV ONLY: Debug auth UID header"
+            },
+            "DebugAdmin": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Debug-Admin",
+                "description": "DEV ONLY: set to '1' to impersonate admin"
+            }
+        }
+    }
+}

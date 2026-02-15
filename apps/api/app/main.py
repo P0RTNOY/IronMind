@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import setup_logging
-from app.routers import health, user, public, checkout, webhooks, admin, access
+from app.routers import health, user, public, checkout, webhooks, admin, access, upload
 from app.context import request_id_ctx
 
 # Setup logging first
@@ -70,6 +70,7 @@ app.include_router(checkout.router, tags=["Checkout"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 app.include_router(access.router, prefix="/access", tags=["Access"])
+app.include_router(upload.router, prefix="/admin", tags=["Uploads"])
 
 @app.get("/")
 async def root():

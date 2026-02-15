@@ -64,7 +64,14 @@ class CourseUpsertRequest(BaseModel):
     type: Literal["one_time", "subscription"]
     published: Optional[bool] = None
     coverImageUrl: Optional[str] = None
+    # For future CDN flexibility
+    coverImagePath: Optional[str] = None
     tags: List[str] = []
+    
+    # Pricing
+    stripePriceIdOneTime: Optional[str] = None
+    stripePriceIdSubscription: Optional[str] = None
+    currency: str = "usd" # Default to USD as per plan, though config says ILS. Sticking to plan default.
 
 class CourseAdmin(BaseModel):
     id: str
@@ -73,7 +80,13 @@ class CourseAdmin(BaseModel):
     type: Literal["one_time", "subscription"]
     published: bool
     coverImageUrl: Optional[str] = None
+    coverImagePath: Optional[str] = None
     tags: List[str] = []
+    
+    stripePriceIdOneTime: Optional[str] = None
+    stripePriceIdSubscription: Optional[str] = None
+    currency: str = "usd"
+    
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
 
@@ -140,5 +153,28 @@ class AccessMeResponse(BaseModel):
     membershipExpiresAt: Optional[datetime] = None
     entitledCourseIds: List[str] = []
 
+    entitledCourseIds: List[str] = []
+
 class AccessCheckResponse(BaseModel):
     allowed: bool
+
+# --- User Management ---
+
+class User(BaseModel):
+    uid: str
+    email: Optional[str] = None
+    name: Optional[str] = None
+    lastSeenAt: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+
+# --- Uploads ---
+
+class UploadSignRequest(BaseModel):
+    kind: Literal["cover", "plan_pdf"]
+    filename: str
+    contentType: str
+
+class UploadSignResponse(BaseModel):
+    uploadUrl: str
+    publicUrl: str
+    objectPath: str

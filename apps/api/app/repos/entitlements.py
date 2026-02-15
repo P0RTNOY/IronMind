@@ -85,37 +85,72 @@ def get_course_entitlement(uid: str, course_id: str) -> Optional[dict]:
     doc = db.collection("entitlements").document(ent_id).get()
     return doc.to_dict() if doc.exists else None
 
+    return False
+
+def grant_course(uid: str, course_id: str, source: str = "manual") -> dict:
+    """
+    Grant access to a course. 
+    If active, idempotent. 
+    If inactive, reactivates.
+    Returns the entitlement dict.
+    """
+    db = get_db()
+    ent_id = _get_course_entitlement_id(uid, course_id)
+    doc_ref = db.collection("entitlements").document(ent_id)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Transactional update might be safer but for MVP admin override, set w/ merge is fine.
+    # We want to ensure we return the final state.
+    
+    data = {
+        "id": ent_id,
+        "uid": uid,
+        "kind": "course",
+        "courseId": course_id,
+        "status": "active",
+        "source": source,
+        "updatedAt": now
+    }
+    
+    # If new, add createdAt
+    doc = doc_ref.get()
+    if not doc.exists:
+        data["createdAt"] = now
+    
+    doc_ref.set(data, merge=True)
+    
+    # Return fresh state
+    return doc_ref.get().to_dict()
+
+def set_status(ent_id: str, status: Literal["active", "inactive"]) -> dict:
+    """
+    Set entitlement status (e.g. revoke).
+    Returns the updated dictionary.
+    Raises KeyError if not found.
+    """
+    db = get_db()
+    doc_ref = db.collection("entitlements").document(ent_id)
+    
+    doc = doc_ref.get()
+    if not doc.exists:
+        raise KeyError(f"Entitlement {ent_id} not found")
+        
+    update_data = {
+        "status": status,
+        "updatedAt": datetime.now(timezone.utc)
+    }
+    
+    doc_ref.update(update_data)
+    
+    # Return updated
+    return doc_ref.get().to_dict()
+
 def list_entitlements(uid: str) -> list[dict]:
     """
     Read all entitlements for a user.
     """
     db = get_db()
+    # Simple query
     query = db.collection("entitlements").where("uid", "==", uid)
     return [doc.to_dict() for doc in query.stream()]
-
-def is_entitlement_active(entitlement: dict) -> bool:
-    """
-    Check if an entitlement is active.
-    Rule: status == 'active' AND (expiresAt is None OR now < expiresAt)
-    """
-    if not entitlement:
-        return False
-        
-    if entitlement.get("status") != "active":
-        return False
-        
-    expires_at = entitlement.get("expiresAt")
-    if not expires_at:
-        return True
-        
-    now = datetime.now(timezone.utc)
-    
-    # Handle potentially naive datetime (though Firestore client usually returns aware)
-    if isinstance(expires_at, datetime):
-         if expires_at.tzinfo is None:
-             expires_at = expires_at.replace(tzinfo=timezone.utc)
-         return now < expires_at
-    
-    # If for some reason it's not a datetime (e.g. string), we fail open or closed?
-    # Fail closed for security.
-    return False

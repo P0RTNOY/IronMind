@@ -89,10 +89,39 @@ export interface PlanAdmin extends PlanPublic {
   updatedAt?: string | null;
 }
 
-export interface UploadSignResponse {
-  uploadUrl: string;
-  publicUrl: string;
-  objectPath: string;
+
+export interface Entitlement {
+  id: string;
+  uid: string;
+  kind: 'course' | 'membership';
+  status: 'active' | 'inactive';
+  source: string;
+  courseId?: string;
+  stripeSubscriptionId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string;
+}
+
+export interface AdminUserRow {
+  uid: string;
+  email?: string;
+  name?: string;
+  lastSeenAt?: string;
+  membershipActive: boolean;
+  membershipExpiresAt?: string;
+  entitledCourseIds: string[];
+}
+
+export interface AdminUsersListResponse {
+  users: AdminUserRow[];
+  nextCursor?: string;
+}
+
+export interface AdminUserDetailResponse {
+  profile: AdminUserRow;
+  entitlements: Entitlement[];
+  purchases: any[];
 }
 
 export interface APIResponse<T> {

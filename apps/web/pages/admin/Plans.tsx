@@ -68,6 +68,21 @@ const AdminPlans: React.FC = () => {
 
     if (loading) return <Loading />;
 
+    if (courses.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+                <h2 className="text-3xl font-black italic mb-4">NO PROTOCOLS FOUND</h2>
+                <p className="text-gray-400 mb-8 max-w-md">
+                    You must create at least one Protocol (Course) before you can manage Plans.
+                    Plans are strictly associated with a specific Protocol.
+                </p>
+                <a href="#/admin/courses" className="bg-red-500 text-white px-8 py-3 rounded-full font-bold uppercase hover:bg-red-600 transition">
+                    Go to Protocols
+                </a>
+            </div>
+        );
+    }
+
     return (
         <div>
             <div className="flex justify-between items-center mb-8">
@@ -82,7 +97,8 @@ const AdminPlans: React.FC = () => {
                     </select>
                     <button
                         onClick={() => { setEditingPlan(null); setIsModalOpen(true); }}
-                        className="bg-white text-black px-4 py-2 rounded font-bold uppercase hover:bg-gray-200 transition"
+                        disabled={!selectedCourse}
+                        className="bg-white text-black px-4 py-2 rounded font-bold uppercase hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + New Plan
                     </button>

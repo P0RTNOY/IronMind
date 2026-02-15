@@ -143,6 +143,40 @@ class MetricsOverview(BaseModel):
     subscriptions_total: int
     entitlements_total: int
 
+class Entitlement(BaseModel):
+    id: str
+    uid: str
+    kind: Literal["course", "membership"]
+    status: Literal["active", "inactive"]
+    source: str
+    courseId: Optional[str] = None
+    stripeSubscriptionId: Optional[str] = None
+    expiresAt: Optional[datetime] = None
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+
+class AdminUserRow(BaseModel):
+    uid: str
+    email: Optional[str] = None
+    name: Optional[str] = None
+    lastSeenAt: Optional[datetime] = None
+    membershipActive: bool
+    membershipExpiresAt: Optional[datetime] = None
+    entitledCourseIds: List[str]
+
+class AdminUsersListResponse(BaseModel):
+    users: List[AdminUserRow]
+    nextCursor: Optional[str] = None
+
+class AdminUserDetailResponse(BaseModel):
+    profile: AdminUserRow
+    entitlements: List[Entitlement]
+    purchases: List[dict] = [] # Placeholder until purchases repo is ready
+
+
+class AccessCheckResponse(BaseModel):
+    allowed: bool
+
 # --- Access Models ---
 
 class AccessMeResponse(BaseModel):
@@ -152,11 +186,6 @@ class AccessMeResponse(BaseModel):
     membershipActive: bool
     membershipExpiresAt: Optional[datetime] = None
     entitledCourseIds: List[str] = []
-
-    entitledCourseIds: List[str] = []
-
-class AccessCheckResponse(BaseModel):
-    allowed: bool
 
 # --- User Management ---
 

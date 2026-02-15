@@ -17,6 +17,7 @@ const AdminDashboard = lazy(() => import('./pages/Admin'));
 const AdminCourses = lazy(() => import('./pages/admin/Courses'));
 const AdminLessons = lazy(() => import('./pages/admin/Lessons'));
 const AdminPlans = lazy(() => import('./pages/admin/Plans'));
+const AdminUsers = lazy(() => import('./pages/admin/Users'));
 
 const App: React.FC = () => {
   const { loading, isAuthorized } = useAuth();
@@ -66,6 +67,10 @@ const App: React.FC = () => {
               <Route
                 path="/admin/plans"
                 element={isAuthorized ? <AdminLayout><AdminPlans /></AdminLayout> : <Navigate to="/auth-debug" replace />}
+              />
+              <Route
+                path="/admin/users"
+                element={isAuthorized ? <AdminLayout><AdminUsers /></AdminLayout> : <Navigate to="/auth-debug" replace />}
               />
 
               {/* Fallback */}

@@ -180,54 +180,106 @@ async def delete_plan(plan_id: str, admin: UserContext = Depends(require_admin))
 
 # --- Users / Revoke ---
 
-@router.get("/users")
-async def list_users(limit: int = 50, admin: UserContext = Depends(require_admin)):
-    db = get_db()
-    
-    # Collect UIDs from entitlements + subscriptions + purchases
-    uids = set()
-    
-    for doc in db.collection("entitlements").limit(500).stream():
-        uid = doc.to_dict().get("uid")
-        if uid:
-            uids.add(uid)
-            
-    for doc in db.collection("subscriptions").limit(500).stream():
-        uid = doc.to_dict().get("uid") or doc.id
-        if uid:
-            uids.add(uid)
-            
-    for doc in db.collection("purchases").limit(500).stream():
-        uid = doc.to_dict().get("uid")
-        if uid:
-            uids.add(uid)
-            
-    # Return stable, limited list
-    out = sorted(list(uids))[:limit]
-    return {"users": [{"uid": uid} for uid in out], "count": len(out)}
 
-@router.post("/users/{uid}/revoke")
-async def revoke_access(uid: str, admin: UserContext = Depends(require_admin)):
-    """
-    Revoke all entitlements for a user.
-    """
-    db = get_db()
-    # Fix: use simple where syntax compliant with pinned library
-    ents = db.collection("entitlements").where("uid", "==", uid).stream()
+# --- Users / Revoke ---
+
+@router.get("/users", response_model=AdminUsersListResponse)
+async def list_users(limit: int = 50, cursor: Optional[str] = None, admin: UserContext = Depends(require_admin)):
+    from app.repos import users
+    from app.services import access_service
     
-    count = 0
-    batch = db.batch()
-    for doc in ents:
-        # Use server timestamp or python datetime, consistent with repos
-        from datetime import datetime, timezone
-        batch.update(doc.reference, {"status": "inactive", "updatedAt": datetime.now(timezone.utc)})
-        count += 1
+    if limit > 200:
+        raise HTTPException(status_code=422, detail="Limit cannot exceed 200")
         
-    if count > 0:
-        batch.commit()
+    user_dicts, next_cursor = users.list_users(limit, cursor)
     
-    admin_audit.write_audit("revoke_access", "user", uid, admin.uid, {"revoked_count": count})
-    return {"status": "revoked", "count": count}
+    # Enrich with access status
+    # Note: efficient enough for 50 users? 
+    # For each user, we need to check membership and entitlements.
+    # access_service.get_access_summary does 2 reads (membership, list_entitlements).
+    # 50 * 2 = 100 reads. Firestore allows this, but it's heavier than just listing users.
+    # User asked for "rich user objects". 
+    # For MVP, N+1 is acceptable for admin panel with low traffic.
+    
+    rows = []
+    for u in user_dicts:
+        uid = u['uid']
+        summary = access_service.get_access_summary(uid)
+        rows.append(AdminUserRow(
+            uid=uid,
+            email=u.get('email'),
+            name=u.get('name'),
+            lastSeenAt=u.get('lastSeenAt'),
+            membershipActive=summary['membershipActive'],
+            membershipExpiresAt=summary['membershipExpiresAt'],
+            entitledCourseIds=summary['entitledCourseIds']
+        ))
+        
+    return {"users": rows, "nextCursor": next_cursor}
+
+@router.get("/users/{uid}", response_model=AdminUserDetailResponse)
+async def get_user_detail(uid: str, admin: UserContext = Depends(require_admin)):
+    from app.repos import users, entitlements
+    from app.services import access_service
+    
+    user_data = users.get_user(uid)
+    if not user_data:
+         raise HTTPException(status_code=404, detail="User not found")
+         
+    summary = access_service.get_access_summary(uid)
+    
+    profile = AdminUserRow(
+        uid=uid,
+        email=user_data.get('email'),
+        name=user_data.get('name'),
+        lastSeenAt=user_data.get('lastSeenAt'),
+        membershipActive=summary['membershipActive'],
+        membershipExpiresAt=summary['membershipExpiresAt'],
+        entitledCourseIds=summary['entitledCourseIds']
+    )
+    
+    ents = entitlements.list_entitlements(uid)
+    # Filter? No, show all history
+    
+    # Purchases repo? Not implemented yet, return empty
+    purchases = []
+    
+    return {
+        "profile": profile,
+        "entitlements": ents,
+        "purchases": purchases
+    }
+
+class GrantCourseRequest(BaseModel):
+    courseId: str
+    
+@router.post("/users/{uid}/entitlements", response_model=Entitlement)
+async def grant_course_access(uid: str, request: GrantCourseRequest, admin: UserContext = Depends(require_admin)):
+    from app.repos import entitlements, courses
+    
+    # Verify course exists
+    if not courses.get_course_admin(request.courseId):
+        raise HTTPException(status_code=404, detail="Course not found")
+        
+    # Grant
+    ent = entitlements.grant_course(uid, request.courseId, source="manual")
+    
+    admin_audit.write_audit("grant_course", "user", uid, admin.uid, {"courseId": request.courseId})
+    
+    return ent
+
+@router.delete("/entitlements/{ent_id}", status_code=204)
+async def revoke_entitlement(ent_id: str, admin: UserContext = Depends(require_admin)):
+    from app.repos import entitlements
+    
+    try:
+        entitlements.set_status(ent_id, "inactive")
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Entitlement not found")
+        
+    admin_audit.write_audit("revoke_entitlement", "entitlement", ent_id, admin.uid)
+    
+# --- Metrics ---
 
 # --- Metrics ---
 

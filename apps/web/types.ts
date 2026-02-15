@@ -64,6 +64,7 @@ export interface SearchResult {
 }
 
 export interface MetricsOverview {
+  users_total: number;
   courses_total: number;
   courses_published: number;
   lessons_total: number;

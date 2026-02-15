@@ -1,11 +1,13 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from app.models import (
     UserContext, 
     CourseUpsertRequest, CourseAdmin, 
     LessonUpsertRequest, LessonAdmin,
     PlanUpsertRequest, PlanAdmin,
-    MetricsOverview
+    MetricsOverview,
+    AdminUsersListResponse, AdminUserDetailResponse, AdminUserRow, Entitlement
 )
 from app.deps import require_admin
 from app.repos import courses, lessons, plans, admin_audit
@@ -281,7 +283,13 @@ async def revoke_entitlement(ent_id: str, admin: UserContext = Depends(require_a
     
 # --- Metrics ---
 
+
 # --- Metrics ---
+
+class AnalyticsPoint(BaseModel):
+    date: str
+    signups: int
+    active: int
 
 @router.get("/metrics/overview", response_model=MetricsOverview)
 async def get_metrics(admin: UserContext = Depends(require_admin)):
@@ -302,8 +310,10 @@ async def get_metrics(admin: UserContext = Depends(require_admin)):
     purchases_ref = db.collection("purchases")
     subs_ref = db.collection("subscriptions")
     ents_ref = db.collection("entitlements")
+    users_ref = db.collection("users")
 
     return MetricsOverview(
+        users_total=count_docs(users_ref),
         courses_total=count_docs(courses_ref),
         courses_published=count_docs(courses_ref.where("published", "==", True)),
         lessons_total=count_docs(lessons_ref),
@@ -314,3 +324,8 @@ async def get_metrics(admin: UserContext = Depends(require_admin)):
         subscriptions_total=count_docs(subs_ref),
         entitlements_total=count_docs(ents_ref)
     )
+
+@router.get("/analytics/growth", response_model=List[AnalyticsPoint])
+async def get_growth_data(days: int = 30, admin: UserContext = Depends(require_admin)):
+    from app.repos import analytics
+    return analytics.get_growth_data(days)

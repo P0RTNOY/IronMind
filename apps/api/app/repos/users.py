@@ -32,27 +32,19 @@ def list_users(limit: int = 50, cursor: Optional[str] = None) -> Tuple[List[dict
     Orders by lastSeenAt desc.
     """
     db = get_db()
-    query = db.collection("users").order_by("lastSeenAt", direction="DESCENDING").order_by("uid")
+    query = db.collection("users").order_by("lastSeenAt", direction="DESCENDING")
     
     if cursor:
         cursor_dict = _decode_cursor(cursor)
         if cursor_dict:
-            # In a real app we'd construct a snapshot or use start_after values.
-            # Firestore python client supports extensive cursor options.
-            # For simplicity/robustness without a snapshot, we might need to fetch the doc first 
-            # or rely on values if supported.
-            # However, start_after(dict) isn't standard. snapshot is best.
-            # Let's try fetching the doc by UID to use as cursor if possible, 
-            # or use values if strictly ordering by unique fields.
-            # Since we order by lastSeenAt (non-unique) + uid (unique), we can use values.
-            # BUT: constructing datetime from ISO string is needed.
+            # Only use lastSeenAt for cursor to avoid composite index requirement
             from datetime import datetime
             vals = []
             if cursor_dict.get("lastSeenAt"):
                 vals.append(datetime.fromisoformat(cursor_dict["lastSeenAt"]))
             else:
                 vals.append(None)
-            vals.append(cursor_dict["uid"])
+            # Removed uid from vals
             query = query.start_after(vals)
 
     docs = list(query.limit(limit).stream())

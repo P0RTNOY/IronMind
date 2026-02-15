@@ -133,6 +133,7 @@ class PlanAdmin(BaseModel):
     updatedAt: Optional[datetime] = None
 
 class MetricsOverview(BaseModel):
+    users_total: int
     courses_total: int
     courses_published: int
     lessons_total: int

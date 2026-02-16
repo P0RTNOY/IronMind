@@ -4,8 +4,24 @@ import { Navbar, Loading } from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import { useAuth } from './hooks/useAuth';
 
-// Lazy load pages for performance
+// Auth Guard Component
+const RequireAuth: React.FC<{ children: JSX.Element }> = ({ children }) => {
+  const { isAuthorized, loading } = useAuth();
+
+  if (loading) return <Loading />;
+
+  if (!isAuthorized) {
+    const target = import.meta.env.DEV ? "/auth-debug" : "/login";
+    return <Navigate to={target} replace />;
+  }
+
+  return children;
+};
+
 const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Success = lazy(() => import('./pages/Success'));
+const Cancel = lazy(() => import('./pages/Cancel'));
 const CourseDetail = lazy(() => import('./pages/CourseDetail'));
 const Search = lazy(() => import('./pages/Search'));
 const Me = lazy(() => import('./pages/Me'));
@@ -20,7 +36,7 @@ const AdminPlans = lazy(() => import('./pages/admin/Plans'));
 const AdminUsers = lazy(() => import('./pages/admin/Users'));
 
 const App: React.FC = () => {
-  const { loading, isAuthorized } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) return <Loading />;
 
@@ -33,45 +49,24 @@ const App: React.FC = () => {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/program/:id" element={<CourseDetail />} />
               <Route path="/search" element={<Search />} />
               <Route path="/auth-debug" element={<DevAuth />} />
+              <Route path="/success" element={<Success />} />
+              <Route path="/cancel" element={<Cancel />} />
 
               {/* Protected Routes */}
-              <Route
-                path="/me"
-                element={isAuthorized ? <Me /> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/access"
-                element={isAuthorized ? <Access /> : <Navigate to="/auth-debug" replace />}
-              />
+              <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
+              <Route path="/access" element={<RequireAuth><Access /></RequireAuth>} />
 
               {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={isAuthorized ? <AdminLayout><AdminDashboard /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/admin/dashboard"
-                element={isAuthorized ? <AdminLayout><AdminDashboard /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/admin/courses"
-                element={isAuthorized ? <AdminLayout><AdminCourses /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/admin/lessons"
-                element={isAuthorized ? <AdminLayout><AdminLessons /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/admin/plans"
-                element={isAuthorized ? <AdminLayout><AdminPlans /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
-              <Route
-                path="/admin/users"
-                element={isAuthorized ? <AdminLayout><AdminUsers /></AdminLayout> : <Navigate to="/auth-debug" replace />}
-              />
+              <Route path="/admin" element={<RequireAuth><AdminLayout><AdminDashboard /></AdminLayout></RequireAuth>} />
+              <Route path="/admin/dashboard" element={<RequireAuth><AdminLayout><AdminDashboard /></AdminLayout></RequireAuth>} />
+              <Route path="/admin/courses" element={<RequireAuth><AdminLayout><AdminCourses /></AdminLayout></RequireAuth>} />
+              <Route path="/admin/lessons" element={<RequireAuth><AdminLayout><AdminLessons /></AdminLayout></RequireAuth>} />
+              <Route path="/admin/plans" element={<RequireAuth><AdminLayout><AdminPlans /></AdminLayout></RequireAuth>} />
+              <Route path="/admin/users" element={<RequireAuth><AdminLayout><AdminUsers /></AdminLayout></RequireAuth>} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

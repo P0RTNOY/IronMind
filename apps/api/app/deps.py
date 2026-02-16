@@ -1,17 +1,27 @@
 from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.auth import verify_firebase_token
+# removed HTTPBearer
 from app.config import settings
 from app.models import UserContext
+from google.cloud import firestore
 
-security = HTTPBearer(auto_error=False)
+# We no longer use Firebase Auth tokens in the backend.
+# We use:
+# 1. Dev: X-Debug-Uid header
+# 2. Prod: ironmind_session cookie
 
+def get_db():
+    from app.repos.firestore import get_db as _get_db
+    return _get_db()
 
-def get_current_user(request: Request, creds: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> UserContext:
+async def get_current_user_cookie(
+    request: Request, 
+    db: firestore.Client = Depends(get_db)
+) -> UserContext:
     """
-    Validate Bearer token and return UserContext.
+    Validate Session Cookie (Prod) or Debug Header (Dev).
     """
+    # 1. Dev Override
     debug_uid = request.headers.get("X-Debug-Uid")
     if debug_uid:
         is_admin = request.headers.get("X-Debug-Admin") == "1"
@@ -22,62 +32,52 @@ def get_current_user(request: Request, creds: Optional[HTTPAuthorizationCredenti
             is_admin=is_admin
         )
 
-    if not creds:
+    # 2. Cookie Auth
+    session_id = request.cookies.get("ironmind_session")
+    if not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing Authorization header"
+            detail="Missing session cookie"
         )
 
-    token = creds.credentials
-    claims = verify_firebase_token(token)
+    # 3. Validate Session from Firestore
+    session_ref = db.collection("sessions").document(session_id)
+    session_doc = session_ref.get()
     
-    # Robust UID extraction (sub is standard, uid is Firebase specific)
-    uid = claims.get("uid") or claims.get("sub") or claims.get("user_id")
-    if not uid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Token missing uid/sub"
-        )
+    if not session_doc.exists:
+        raise HTTPException(status_code=401, detail="Invalid session")
         
-    email = claims.get("email")
-    name = claims.get("name")
+    session_data = session_doc.to_dict()
     
-    # Check admin status based on config
+    # Check Expiry
+    # Assuming firestore returns aware datetime
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    expires_at = session_data.get("expiresAt")
+    
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
+    if not expires_at or now > expires_at:
+        raise HTTPException(status_code=401, detail="Session expired")
+        
+    uid = session_data.get("uid")
+    email = session_data.get("email")
+    
+    # Check Admin (Env based source of truth for Prod)
+    # or we could store isAdmin in the user doc/session.
+    # For now, let's keep using ADMIN_UIDS env for safety.
     is_admin = uid in settings.ADMIN_UIDS
     
-    # Lazy User Sync
-    try:
-        from app.repos.firestore import get_db
-        from google.cloud import firestore
-        
-        db = get_db()
-        user_ref = db.collection("users").document(uid)
-        
-        # Use set with merge=True to be idempotent and non-destructive
-        # We update lastSeenAt on every auth.
-        user_data = {
-            "uid": uid,
-            "lastSeenAt": firestore.SERVER_TIMESTAMP
-        }
-        if email:
-            user_data["email"] = email
-        if name:
-            user_data["name"] = name
-            
-        user_ref.set(user_data, merge=True)
-        
-    except Exception as e:
-        # Do not fail the request if user sync fails
-        # Log it and proceed
-        import logging
-        logging.getLogger("app.deps").warning(f"Failed to sync user {uid}: {e}")
-
     return UserContext(
         uid=uid,
         email=email,
-        name=name,
+        name=email.split("@")[0] if email else "User",
         is_admin=is_admin
     )
+
+# Alias for compatibility if needed, or we just update imports
+get_current_user = get_current_user_cookie
 
 def require_admin(user: UserContext = Depends(get_current_user)) -> UserContext:
     """

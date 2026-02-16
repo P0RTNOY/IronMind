@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import setup_logging
-from app.routers import health, user, public, checkout, webhooks, admin, access, upload
+from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload
 from app.context import request_id_ctx
 
 # Setup logging first
@@ -50,27 +50,42 @@ app = FastAPI(
 )
 
 
+
 # Custom Middleware
-app.add_middleware(RequestIdMiddleware)
+# app.add_middleware(RequestIdMiddleware)
 
 # CORS
+# Using regex for robust matching of localhost/127.0.0.1
+
+
+# CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    settings.FRONTEND_ORIGIN
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "X-Debug-Uid", "X-Debug-Admin", "X-Request-Id"],
+    expose_headers=["X-Debug-Uid", "X-Debug-Admin", "X-Request-Id"]
 )
+
+# Routers
 
 # Routers
 app.include_router(health.router, tags=["Health"])
 app.include_router(public.router, tags=["Public"])
+app.include_router(auth.router, tags=["Auth"])
 app.include_router(user.router, tags=["User"])
+app.include_router(access.router, tags=["Access"])
 app.include_router(checkout.router, tags=["Checkout"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
-app.include_router(access.router, prefix="/access", tags=["Access"])
-app.include_router(upload.router, prefix="/admin", tags=["Uploads"])
+app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 
 @app.get("/")
 async def root():

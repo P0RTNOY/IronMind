@@ -98,3 +98,34 @@ async def create_checkout_session(
     except Exception as e:
         logger.error(f"Checkout creation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to create checkout session")
+
+class CheckoutSessionVerification(BaseModel):
+    courseId: Optional[str]
+    paymentStatus: str # paid, unpaid, no_payment_required
+
+@router.get("/checkout/session/{session_id}", response_model=CheckoutSessionVerification)
+async def verify_checkout_session(
+    session_id: str,
+    user: UserContext = Depends(get_current_user)
+):
+    """
+    Verify the status of a checkout session.
+    """
+    try:
+        session = stripe_service.get_checkout_session(session_id)
+    except RuntimeError as e:
+         raise HTTPException(status_code=500, detail=str(e))
+         
+    # Optional: Verify the session belongs to the user
+    if session.get("client_reference_id") and session.get("client_reference_id") != user.uid:
+        # We could raise 403, but typically generic error or 404 is safer to avoid enumeration
+        # For now, let's allow basic verification but log mismatch
+        logger.warning(f"Session {session_id} queried by {user.uid} but belongs to {session.get('client_reference_id')}")
+        
+    course_id = session.get("metadata", {}).get("courseId")
+    payment_status = session.get("payment_status")
+    
+    return CheckoutSessionVerification(
+        courseId=course_id,
+        paymentStatus=payment_status
+    )

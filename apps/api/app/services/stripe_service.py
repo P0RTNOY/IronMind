@@ -96,3 +96,17 @@ def create_checkout_session(
         raise RuntimeError(f"Stripe API error: {str(e)}") from e
     except Exception as e:
         raise RuntimeError(f"Failed to create checkout session: {str(e)}") from e
+
+def get_checkout_session(session_id: str) -> dict:
+    """
+    Retrieve a Checkout Session from Stripe.
+    """
+    if not settings.STRIPE_SECRET_KEY:
+        raise RuntimeError("Stripe API key not configured")
+        
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    
+    try:
+        return stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        raise RuntimeError(f"Stripe API error: {str(e)}") from e

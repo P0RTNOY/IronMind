@@ -26,8 +26,10 @@ const CourseDetail: React.FC = () => {
         return;
       }
 
-      // 2. Check access
-      const accessReq = await apiFetch<AccessCheckResponse>(`/access/courses/${id}`);
+      // 2. Check access (skip redirect so guests can view the page)
+      const accessReq = await apiFetch<AccessCheckResponse>(`/access/courses/${id}`, {
+        skipRedirect: true
+      });
       if (accessReq.status === 200 && accessReq.data?.allowed) {
         setHasAccess(true);
       } else {

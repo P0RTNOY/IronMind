@@ -1,54 +1,78 @@
-
-import { useState, useEffect } from 'react';
-import { apiFetch } from '../lib/api';
-import { AccessMeResponse } from '../types';
+import { useState, useEffect } from "react";
+import { UserContext } from "../types";
+import { apiFetch } from "../lib/api";
 
 export function useAuth() {
-  const [uid, setUid] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [accessData, setAccessData] = useState<AccessMeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+    const [user, setUser] = useState<UserContext | null>(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const storedUid = localStorage.getItem('debugUid');
-    const storedAdmin = localStorage.getItem('debugAdmin');
-    
-    setUid(storedUid);
-    setIsAdmin(storedAdmin === '1');
-    
-    const fetchAccess = async () => {
-      if (!storedUid) {
-        setLoading(false);
-        setIsAuthorized(false);
-        return;
-      }
+    const checkAuth = async () => {
+        // 1. Dev Auth (localStorage) - Synchronous Check
+        // This allows instant load for dev environment
+        const debugUid = localStorage.getItem("debugUid");
+        if (debugUid) {
+            setUser({
+                uid: debugUid,
+                is_admin: localStorage.getItem("debugAdmin") === "1",
+                email: "dev@local",
+                name: "Dev User"
+            });
+            setLoading(false);
+            return;
+        }
 
-      const { data, status } = await apiFetch<AccessMeResponse>('/access/me');
-      if (status === 200 && data) {
-        setAccessData(data);
-        setIsAdmin(data.isAdmin);
-        setIsAuthorized(true);
-      } else if (status === 401) {
-        setIsAuthorized(false);
-      }
-      setLoading(false);
+        // 2. Production Auth (Cookie Session)
+        // We call the API. If 401, we are not logged in.
+        try {
+            const { data, status } = await apiFetch<{ uid: string; email: string; isAdmin: boolean }>('/auth/session', {
+                skipRedirect: true
+            });
+
+            if (status === 200 && data) {
+                setUser({
+                    uid: data.uid,
+                    email: data.email,
+                    is_admin: data.isAdmin,
+                    name: data.email.split('@')[0],
+                });
+            } else {
+                setUser(null);
+            }
+        } catch (e) {
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    fetchAccess();
-  }, []);
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
-  const login = (uid: string, admin: boolean) => {
-    localStorage.setItem('debugUid', uid);
-    localStorage.setItem('debugAdmin', admin ? '1' : '0');
-    window.location.reload();
-  };
+    const loginDev = (uid: string, admin: boolean) => {
+        localStorage.setItem('debugUid', uid);
+        localStorage.setItem('debugAdmin', admin ? '1' : '0');
+        window.location.reload();
+    };
 
-  const logout = () => {
-    localStorage.removeItem('debugUid');
-    localStorage.removeItem('debugAdmin');
-    window.location.reload();
-  };
+    const logout = async () => {
+        if (localStorage.getItem('debugUid')) {
+            localStorage.removeItem('debugUid');
+            localStorage.removeItem('debugAdmin');
+            window.location.reload();
+            return;
+        }
 
-  return { uid, isAdmin, accessData, loading, isAuthorized, login, logout };
+        // Prod Logout
+        try {
+            await apiFetch('/auth/logout', { method: 'POST' });
+            window.location.href = '/';
+        } catch (e) {
+            console.error("Logout failed", e);
+            // Force reload anyway
+            window.location.href = '/';
+        }
+    };
+
+    return { user, loading, loginDev, logout };
 }

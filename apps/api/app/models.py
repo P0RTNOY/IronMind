@@ -48,7 +48,9 @@ class PlanPublic(BaseModel):
     titleHe: str
     descriptionHe: str
     tags: List[str] = []
-    pdfPath: Optional[str] = None
+    pdfPath: Optional[str] = None              # kept for backward compat, ALWAYS None in public output
+    hasPdf: bool = False
+    pdfDownloadEndpoint: Optional[str] = None
     published: bool
 
 class SearchResult(BaseModel):

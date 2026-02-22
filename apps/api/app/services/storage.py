@@ -55,3 +55,35 @@ def get_public_url(blob_name: str) -> str:
     # Use the configured public base URL (e.g. https://storage.googleapis.com)
     # Pattern: https://storage.googleapis.com/<bucket>/<blob>
     return f"{settings.GCS_PUBLIC_BASE_URL}/{bucket_name}/{blob_name}"
+
+
+def generate_signed_download_url(
+    blob_name: str,
+    ttl_seconds: int | None = None,
+    bucket_name: str | None = None,
+) -> str:
+    """
+    Generate a V4 signed URL for downloading (GET) a GCS object.
+    TTL defaults to settings.SIGNED_URL_TTL_SECONDS (900s / 15min).
+    """
+    bucket_name = bucket_name or settings.GCS_BUCKET_NAME
+    if not bucket_name:
+        raise RuntimeError("GCS_BUCKET_NAME is not configured")
+
+    client = get_storage_client()
+    if not client:
+        raise RuntimeError("GCS client not initialized")
+
+    ttl = ttl_seconds or settings.SIGNED_URL_TTL_SECONDS
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    url = blob.generate_signed_url(
+        version="v4",
+        expiration=datetime.timedelta(seconds=ttl),
+        method="GET",
+        response_disposition="attachment",
+    )
+
+    return url
+

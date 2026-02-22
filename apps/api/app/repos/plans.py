@@ -25,7 +25,15 @@ def search_published_plans(query_text: str, limit: int = 50) -> List[PlanPublic]
         if (q in title or 
             q in desc or 
             any(q in t for t in tags)):
-            results.append(PlanPublic(id=doc.id, **data))
+            has_pdf = bool(data.get("pdfPath"))
+            safe_data = {k: v for k, v in data.items() if k != "pdfPath"}
+            results.append(PlanPublic(
+                id=doc.id,
+                pdfPath=None,  # NEVER expose raw GCS path
+                hasPdf=has_pdf,
+                pdfDownloadEndpoint=f"/content/plans/{doc.id}/download" if has_pdf else None,
+                **safe_data,
+            ))
             
     return results[:limit]
 

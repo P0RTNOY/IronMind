@@ -135,6 +135,8 @@ const LessonModal: React.FC<{
         published: true
     });
     const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
+    const [verifying, setVerifying] = useState(false);
+    const [verifyError, setVerifyError] = useState<string | null>(null);
 
     useEffect(() => {
         if (lesson) setFormData(lesson);
@@ -151,6 +153,45 @@ const LessonModal: React.FC<{
         }
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [previewVideoId]);
+
+    const handleVerifyVideo = async () => {
+        if (!lesson?.id || !formData.vimeoVideoId) return;
+        setVerifying(true);
+        setVerifyError(null);
+        try {
+            const { data, error, status } = await apiFetch(`/admin/vimeo/lessons/${lesson.id}/verify`, {
+                method: 'POST'
+            });
+            if (error) {
+                if (status === 501 && error.error === 'vimeo_verify_disabled') {
+                    setVerifyError('Verification disabled (set VIMEO_VERIFY_ENABLED=true)');
+                } else {
+                    setVerifyError(error.detail || error.message || 'Verification failed');
+                }
+            } else if (data) {
+                // Instantly update UI with new verification stats
+                setFormData(prev => ({
+                    ...prev,
+                    vimeoVerifyOk: data.ok,
+                    vimeoVerifyCheckedAt: data.checked_at,
+                    vimeoVerifyMissingDomains: data.missing_domains,
+                    vimeoVerifyAllowedDomains: data.allowed_domains,
+                    vimeoVerifyEmbedMode: data.embed_mode
+                }));
+                // Also trigger an upstream save so parent list refreshes next time it's opened
+                onSave({
+                    ...formData,
+                    vimeoVerifyOk: data.ok,
+                    vimeoVerifyCheckedAt: data.checked_at,
+                    vimeoVerifyMissingDomains: data.missing_domains
+                });
+            }
+        } catch (err: any) {
+            setVerifyError(err.message || 'Unknown error during verification');
+        } finally {
+            setVerifying(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">

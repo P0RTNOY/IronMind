@@ -83,6 +83,11 @@ export interface AccessCheckResponse {
 export interface LessonAdmin extends LessonPublic {
   createdAt?: string | null;
   updatedAt?: string | null;
+  vimeoVerifyOk?: boolean | null;
+  vimeoVerifyCheckedAt?: string | null;
+  vimeoVerifyMissingDomains?: string[];
+  vimeoVerifyAllowedDomains?: string[];
+  vimeoVerifyEmbedMode?: string | null;
 }
 
 export interface PlanAdmin extends PlanPublic {

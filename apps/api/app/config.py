@@ -36,7 +36,11 @@ class Settings(BaseSettings):
     # Video
     VIDEO_PROVIDER: str = "vimeo"
     VIMEO_EMBED_BASE_URL: str = "https://player.vimeo.com/video"
-    ALLOWED_EMBED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    VIMEO_VERIFY_ENABLED: bool = False
+    VIMEO_ACCESS_TOKEN: str = ""
+    VIMEO_REQUIRED_EMBED_ORIGINS: List[str] = ["ironmind.app", "www.ironmind.app"]
+    VIMEO_API_BASE_URL: str = "https://api.vimeo.com"
+    VIMEO_VERIFY_TIMEOUT_SECONDS: int = 15
     
     CURRENCY_DEFAULT: str = "ils"
     APP_VERSION: str = "0.0.1"
@@ -73,8 +77,9 @@ class Settings(BaseSettings):
             return [uid.strip() for uid in v.split(",") if uid.strip()]
         return []
 
-    @field_validator("ALLOWED_EMBED_ORIGINS", mode="before")
-    def parse_embed_origins(cls, v) -> List[str]:
+
+    @field_validator("VIMEO_REQUIRED_EMBED_ORIGINS", mode="before")
+    def parse_required_embed_origins(cls, v) -> List[str]:
         if v is None:
             return []
         if isinstance(v, list):

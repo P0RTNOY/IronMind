@@ -8,7 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import setup_logging
-from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content
+from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo
 from app.context import request_id_ctx
 
 # Setup logging first
@@ -87,6 +87,7 @@ app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(content.router, prefix="/content", tags=["Content"])
+app.include_router(admin_vimeo.router, prefix="/admin/vimeo", tags=["Admin Vimeo"])
 
 @app.get("/")
 async def root():

@@ -117,6 +117,13 @@ class LessonAdmin(BaseModel):
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
 
+    # Vimeo Verification Fields
+    vimeoVerifyOk: Optional[bool] = None
+    vimeoVerifyCheckedAt: Optional[datetime] = None
+    vimeoVerifyMissingDomains: List[str] = []
+    vimeoVerifyAllowedDomains: List[str] = []
+    vimeoVerifyEmbedMode: Optional[str] = None
+
 class PlanUpsertRequest(BaseModel):
     courseId: Optional[str] = None
     titleHe: str

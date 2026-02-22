@@ -112,3 +112,10 @@ def delete_lesson(lesson_id: str) -> None:
     if not ref.get().exists:
         raise KeyError("Lesson not found")
     ref.delete()
+
+def update_lesson_verification(lesson_id: str, verify_data: dict) -> None:
+    db = get_db()
+    ref = db.collection("lessons").document(lesson_id)
+    if not ref.get().exists:
+        raise KeyError("Lesson not found")
+    ref.update(verify_data)

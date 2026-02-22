@@ -3,9 +3,8 @@ Unit tests for Vimeo admin verification (Phase 2.7).
 Mocks outer httpx calls to ensure no real network traffic.
 """
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-from datetime import datetime, timezone
 
 from app.main import app
 from app.config import settings
@@ -114,6 +113,8 @@ def test_normalize_video_id():
     assert vimeo_client._normalize_video_id(" /videos/123456789 ") == "123456789"
     assert vimeo_client._normalize_video_id("https://vimeo.com/123456789") == "123456789"
     assert vimeo_client._normalize_video_id("https://player.vimeo.com/video/123456789") == "123456789"
+    assert vimeo_client._normalize_video_id("https://vimeo.com/123456789?share=copy") == "123456789"
+    assert vimeo_client._normalize_video_id("https://player.vimeo.com/video/123456789#t=10s") == "123456789"
 
 def test_normalize_domain():
     assert vimeo_verify._normalize_domain("http://IronMind.app") == "ironmind.app"
@@ -122,15 +123,24 @@ def test_normalize_domain():
 
 @patch("app.routers.admin_vimeo.lessons_repo")
 @patch("app.services.vimeo_verify.vimeo_client.get_video")
-def test_verify_api_error(mock_get_video, mock_repo):
-    # Mock Lesson Repo
+def test_verify_api_error_maps_to_403(mock_get_video, mock_repo):
     mock_repo.get_lesson_admin.return_value = {"id": MOCK_LESSON_ID, "vimeoVideoId": MOCK_VIDEO_ID}
-    
-    # Mock Vimeo API exception
-    from app.services import vimeo_client
+
     mock_get_video.side_effect = vimeo_client.VimeoAPIError("Invalid token", status_code=401)
 
     response = client.post(f"/admin/vimeo/lessons/{MOCK_LESSON_ID}/verify", headers=HEADERS)
-    
+
     assert response.status_code == 403
-    assert "Vimeo API Error" in response.json()["detail"]
+    assert response.json()["detail"].startswith("Vimeo API Error:")
+
+@patch("app.routers.admin_vimeo.lessons_repo")
+@patch("app.services.vimeo_verify.vimeo_client.get_video")
+def test_verify_api_error_maps_to_502(mock_get_video, mock_repo):
+    mock_repo.get_lesson_admin.return_value = {"id": MOCK_LESSON_ID, "vimeoVideoId": MOCK_VIDEO_ID}
+
+    mock_get_video.side_effect = vimeo_client.VimeoAPIError("Upstream timeout", status_code=503)
+
+    response = client.post(f"/admin/vimeo/lessons/{MOCK_LESSON_ID}/verify", headers=HEADERS)
+
+    assert response.status_code == 502
+    assert response.json()["detail"].startswith("Vimeo API Error:")

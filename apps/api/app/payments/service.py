@@ -11,10 +11,12 @@ from datetime import datetime, timezone
 from typing import Mapping, Optional
 
 from app.payments import events
+from app.config import settings
 from app.payments.models import PaymentIntent
 from app.payments.provider import VerifiedWebhook
 from app.payments.providers.registry import get_provider, get_provider_name
 from app.payments.repo import get_repos
+from app.payments.redact import redact_payload
 
 logger = logging.getLogger(__name__)
 
@@ -103,15 +105,32 @@ def handle_webhook(
         "event_type": verified.event_type,
     }
 
+    # 1.5 Optionally Capture Raw Redacted Webhook
+    event_doc = {
+        "provider": verified.provider,
+        "type": verified.event_type,
+        "payload": verified.payload,
+    }
+    
+    if settings.PAYPLUS_CAPTURE_WEBHOOK_PAYLOADS:
+        try:
+            import json
+            raw_dict = json.loads(raw_body.decode("utf-8"))
+            event_doc["payload_raw_redacted"] = redact_payload(
+                raw_dict, set(settings.PAYPLUS_PAYLOAD_REDACT_KEYS)
+            )
+            event_doc["payload_keys"] = list(raw_dict.keys())[:100]
+            if isinstance(raw_dict.get("transaction"), dict):
+                event_doc["transaction_keys"] = list(raw_dict["transaction"].keys())[:100]
+        except Exception as e:
+            logger.warning(f"Failed to parse or redact raw webhook body: {e}")
+            event_doc["payload_raw_redacted"] = {"_error": "invalid_json_or_redact_failure"}
+
     # 2. Idempotency
     created = repos.events.create_event_if_absent(
         provider=verified.provider,
         event_id=verified.event_id,
-        event_doc={
-            "provider": verified.provider,
-            "type": verified.event_type,
-            "payload": verified.payload,
-        },
+        event_doc=event_doc,
     )
     if not created:
         logger.info("Duplicate webhook event, skipping", extra=log_ctx)

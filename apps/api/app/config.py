@@ -57,6 +57,7 @@ class Settings(BaseSettings):
 
     # PayPlus
     PAYPLUS_ENV: str = "sandbox"                          # "sandbox" | "prod"
+    ENABLE_PAYPLUS: bool = False
     PAYPLUS_API_KEY: str = ""
     PAYPLUS_SECRET_KEY: str = ""
     PAYPLUS_PAYMENT_PAGE_UID_ONE_TIME: str = ""
@@ -65,6 +66,14 @@ class Settings(BaseSettings):
     PAYPLUS_TIMEOUT_SECONDS: int = 15
     PUBLIC_WEBHOOK_BASE_URL: str = "http://localhost:8080"
     WEBHOOK_RATE_LIMIT_ENABLED: bool = True
+    
+    # Phase 6.2A Additions
+    PAYPLUS_CAPTURE_WEBHOOK_PAYLOADS: bool = True
+    PAYPLUS_RECURRING_ENABLED: bool = False
+    PAYPLUS_PAYLOAD_REDACT_KEYS: List[str] = [
+        "email", "phone", "full_name", "first_name", 
+        "last_name", "card", "cc", "pan", "cvv", "exp", "address"
+    ]
 
     @property
     def is_prod(self) -> bool:

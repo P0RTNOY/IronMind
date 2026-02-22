@@ -65,6 +65,7 @@ class PayPlusProvider:
         body = {
             "payment_page_uid": payment_page_uid,
             "refURL_callback": self.callback_url,
+            "send_failure_callback": True,
             "more_info": intent.id,  # tracing only — lookup uses provider_ref
         }
         # Only include redirect URLs if FRONTEND_ORIGIN is configured
@@ -79,7 +80,8 @@ class PayPlusProvider:
         data = resp.get("data", resp)
 
         payment_page_link = data.get("payment_page_link", "")
-        payment_request_uid = data.get("payment_request_uid", "")
+        # PayPlus might return payment_request_uid or page_request_uid
+        payment_request_uid = data.get("payment_request_uid") or data.get("page_request_uid") or ""
 
         if not payment_page_link or not payment_request_uid:
             raise RuntimeError(
@@ -121,7 +123,9 @@ class PayPlusProvider:
         transaction = data.get("transaction", data)
         payment_request_uid = (
             data.get("payment_request_uid")
+            or data.get("page_request_uid")
             or transaction.get("payment_request_uid")
+            or transaction.get("page_request_uid")
             or ""
         )
         transaction_uid = (
@@ -166,6 +170,15 @@ class PayPlusProvider:
             "payment_request_uid": payment_request_uid,
             "top_level_keys": list(data.keys()),
         }
+        
+        # DEBUG LOG FOR WEBHOOK CAPTURE (Requested by user)
+        logger.info(
+            "PayPlus Webhook Captured: transaction=%s | token_uid=%s | recurring_id=%s | top_level_keys=%s",
+            json.dumps(transaction),
+            data.get("token_uid") or transaction.get("token_uid"),
+            data.get("recurring_id") or transaction.get("recurring_id"),
+            list(data.keys())
+        )
 
         return VerifiedWebhook(
             provider=PROVIDER_NAME,

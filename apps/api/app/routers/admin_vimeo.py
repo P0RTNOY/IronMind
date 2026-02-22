@@ -12,7 +12,7 @@ from app.config import settings
 from app.deps import require_admin
 from app.models import UserContext
 from app.repos import lessons as lessons_repo
-from app.services import vimeo_verify
+from app.services import vimeo_client, vimeo_verify
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +45,20 @@ async def verify_lesson_video(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Lesson has no Vimeo video ID")
 
     # 2. Verify settings via Vimeo API
-    logger.info(f"Admin {admin.uid} verifying video privacy for lesson {lesson_id}")
-    result = await vimeo_verify.verify_video_domains(video_id)
+    logger.info(
+        "Admin verifying Vimeo privacy",
+        extra={"admin_uid": admin.uid, "lesson_id": lesson_id}
+    )
+    
+    try:
+        result = await vimeo_verify.verify_video_domains(video_id)
+    except vimeo_client.VimeoAPIError as e:
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        if e.status_code in (401, 403):
+            status_code = status.HTTP_403_FORBIDDEN
+        elif e.status_code in (500, 502, 503, 504):
+            status_code = status.HTTP_502_BAD_GATEWAY
+        raise HTTPException(status_code=status_code, detail=f"Vimeo API Error: {str(e)}")
 
     # 3. Store result in DB
     verify_data = {

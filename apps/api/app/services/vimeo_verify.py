@@ -43,32 +43,15 @@ async def verify_video_domains(video_id: str) -> VerificationResult:
     allowed_domains = []
     
     # 1. Fetch video metadata
-    try:
-        video_data = await vimeo_client.get_video(video_id)
-        embed_mode = video_data.get("privacy", {}).get("embed")
-        if not embed_mode:
-            warnings.append("Could not read embed privacy mode")
-        elif embed_mode not in ("whitelist", "domains"):
-            warnings.append(f"Unexpected embed mode: {embed_mode}")
-    except vimeo_client.VimeoAPIError as e:
-        logger.error(f"Failed to fetch video {video_id}: {e}")
-        return VerificationResult(
-            ok=False,
-            checked_at=now,
-            warnings=[f"API error fetching video: {e}"],
-        )
+    video_data = await vimeo_client.get_video(video_id)
+    embed_mode = video_data.get("privacy", {}).get("embed")
+    if not embed_mode:
+        warnings.append("Could not read embed privacy mode")
+    elif embed_mode not in ("whitelist", "domains"):
+        warnings.append(f"Unexpected embed mode: {embed_mode}")
 
     # 2. Fetch allowed domains
-    try:
-        allowed_domains = await vimeo_client.get_embed_domains(video_id)
-    except vimeo_client.VimeoAPIError as e:
-        logger.error(f"Failed to fetch domains for video {video_id}: {e}")
-        return VerificationResult(
-            ok=False,
-            embed_mode=embed_mode,
-            checked_at=now,
-            warnings=[f"API error fetching domains: {e}"] + warnings,
-        )
+    allowed_domains = await vimeo_client.get_embed_domains(video_id)
 
     # 3. Compare required vs actual
     required_domains = [_normalize_domain(d) for d in settings.VIMEO_REQUIRED_EMBED_ORIGINS]

@@ -119,3 +119,18 @@ def test_normalize_domain():
     assert vimeo_verify._normalize_domain("http://IronMind.app") == "ironmind.app"
     assert vimeo_verify._normalize_domain("https://www.ironmind.app/") == "www.ironmind.app"
     assert vimeo_verify._normalize_domain("ironmind.app:8080") == "ironmind.app"
+
+@patch("app.routers.admin_vimeo.lessons_repo")
+@patch("app.services.vimeo_verify.vimeo_client.get_video")
+def test_verify_api_error(mock_get_video, mock_repo):
+    # Mock Lesson Repo
+    mock_repo.get_lesson_admin.return_value = {"id": MOCK_LESSON_ID, "vimeoVideoId": MOCK_VIDEO_ID}
+    
+    # Mock Vimeo API exception
+    from app.services import vimeo_client
+    mock_get_video.side_effect = vimeo_client.VimeoAPIError("Invalid token", status_code=401)
+
+    response = client.post(f"/admin/vimeo/lessons/{MOCK_LESSON_ID}/verify", headers=HEADERS)
+    
+    assert response.status_code == 403
+    assert "Vimeo API Error" in response.json()["detail"]

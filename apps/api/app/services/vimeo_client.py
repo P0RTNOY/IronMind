@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import httpx
 
@@ -30,15 +31,23 @@ def _normalize_video_id(video_id: str) -> str:
     if "/" in cleaned:
         cleaned = cleaned.rstrip("/").split("/")[-1]
         
+    cleaned = cleaned.split("?")[0].split("#")[0]
+        
     return cleaned
 
 
+_client: Optional[httpx.AsyncClient] = None
+
 def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is not None:
+        return _client
+        
     token = settings.VIMEO_ACCESS_TOKEN
     if not token:
         raise VimeoAPIError("Vimeo access token not configured", status_code=500)
     
-    return httpx.AsyncClient(
+    _client = httpx.AsyncClient(
         base_url=settings.VIMEO_API_BASE_URL,
         headers={
             "Authorization": f"Bearer {token}",
@@ -46,6 +55,7 @@ def _get_client() -> httpx.AsyncClient:
         },
         timeout=settings.VIMEO_VERIFY_TIMEOUT_SECONDS,
     )
+    return _client
 
 
 async def get_video(video_id: str) -> dict:
@@ -60,10 +70,10 @@ async def get_video(video_id: str) -> dict:
     logger.debug(f"Fetching Vimeo video detais for ID: {clean_id}")
     
     try:
-        async with _get_client() as client:
-            resp = await client.get(f"/videos/{clean_id}")
-            resp.raise_for_status()
-            return resp.json()
+        client = _get_client()
+        resp = await client.get(f"/videos/{clean_id}")
+        resp.raise_for_status()
+        return resp.json()
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         logger.error(f"Vimeo API HTTP error fetching video: {status}")
@@ -85,17 +95,17 @@ async def get_embed_domains(video_id: str) -> list[str]:
     logger.debug(f"Fetching Vimeo embed domains for ID: {clean_id}")
     
     try:
-        async with _get_client() as client:
-            resp = await client.get(f"/videos/{clean_id}/privacy/domains")
-            resp.raise_for_status()
-            data = resp.json()
-            # The structure is usually {"data": [{"domain": "example.com"}, ...]}
-            domains = []
-            for item in data.get("data", []):
-                domain = item.get("domain")
-                if domain:
-                    domains.append(domain)
-            return domains
+        client = _get_client()
+        resp = await client.get(f"/videos/{clean_id}/privacy/domains")
+        resp.raise_for_status()
+        data = resp.json()
+        # The structure is usually {"data": [{"domain": "example.com"}, ...]}
+        domains = []
+        for item in data.get("data", []):
+            domain = item.get("domain")
+            if domain:
+                domains.append(domain)
+        return domains
     except httpx.HTTPStatusError as e:
         status = e.response.status_code
         logger.error(f"Vimeo API HTTP error fetching domains: {status}")

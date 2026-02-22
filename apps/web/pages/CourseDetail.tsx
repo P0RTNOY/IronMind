@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch, fetchCourse, fetchCourseLessons, fetchCoursePlans, checkCourseAccess, fetchPlanDownload } from '../lib/api';
 import { CoursePublic, LessonPublic, PlanPublic } from '../types';
 import { Loading, ErrorState } from '../components/Layout';
+import { toast } from '../components/toast';
 import { useNavigate } from 'react-router-dom';
 
 const CourseDetail: React.FC = () => {
@@ -16,6 +17,7 @@ const CourseDetail: React.FC = () => {
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [contentLoading, setContentLoading] = useState(true);
+  const [accessLoading, setAccessLoading] = useState(true);
   const [error, setError] = useState<{ status: number, data: any } | null>(null);
 
   useEffect(() => {
@@ -23,6 +25,7 @@ const CourseDetail: React.FC = () => {
       if (!id) return;
       setLoading(true);
       setContentLoading(true);
+      setAccessLoading(true);
 
       // 1. Fetch public course details
       const courseReq = await fetchCourse(id);
@@ -33,26 +36,28 @@ const CourseDetail: React.FC = () => {
         setLoading(false);
         return;
       }
+      setLoading(false); // Render structural page immediately
 
       // 2. Fetch public content in parallel
-      const [lessonsReq, plansReq] = await Promise.all([
-        fetchCourseLessons(id),
-        fetchCoursePlans(id)
-      ]);
+      Promise.all([fetchCourseLessons(id), fetchCoursePlans(id)]).then(([lessonsReq, plansReq]) => {
+        if (lessonsReq.status === 200 && lessonsReq.data) setLessons(lessonsReq.data);
+        if (plansReq.status === 200 && plansReq.data) setPlans(plansReq.data);
+        setContentLoading(false);
+      });
 
-      if (lessonsReq.status === 200 && lessonsReq.data) setLessons(lessonsReq.data);
-      if (plansReq.status === 200 && plansReq.data) setPlans(plansReq.data);
-      setContentLoading(false);
-
-      // 3. Check access (skip redirect so guests can view the page)
-      const accessReq = await checkCourseAccess(id);
-      setHasAccess(Boolean(accessReq.data?.allowed));
-
-      setLoading(false);
+      // 3. Check access
+      checkAccessStatus(id);
     };
 
     loadData();
   }, [id]);
+
+  const checkAccessStatus = async (courseId: string) => {
+    setAccessLoading(true);
+    const accessReq = await checkCourseAccess(courseId);
+    setHasAccess(Boolean(accessReq.data?.allowed));
+    setAccessLoading(false);
+  };
 
   if (loading) return <Loading />;
   if (error) return <ErrorState status={error.status} message={error.data} />;
@@ -124,15 +129,29 @@ const CourseDetail: React.FC = () => {
                     if (res.status === 200 && res.data?.url) {
                       window.location.href = res.data.url;
                     } else {
-                      alert('Failed to initiate checkout: ' + (res.error?.detail || 'Unknown error'));
+                      toast.error('Failed to initiate checkout: ' + (res.error?.detail || 'Unknown error'));
                     }
                   } catch (e) {
-                    alert('System error initiating checkout');
+                    toast.error('System error initiating checkout');
                   }
                 }}
                 className="bg-white text-black px-10 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all duration-500 shadow-xl shadow-white/5 active:scale-95"
               >
                 Purchase Access
+              </button>
+              <button
+                onClick={() => checkAccessStatus(course.id)}
+                disabled={accessLoading}
+                className="block mx-auto mt-6 text-xs text-gray-500 hover:text-white uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+              >
+                {accessLoading ? (
+                  <>
+                    <svg className="animate-spin h-3 w-3 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Checking access...
+                  </>
+                ) : (
+                  "Already purchased? Refresh access"
+                )}
               </button>
             </div>
           </div>
@@ -145,7 +164,7 @@ const CourseDetail: React.FC = () => {
             <div className="text-gray-500 text-sm">No lessons published yet.</div>
           ) : (
             lessons.map((lesson, idx) => {
-              const locked = !hasAccess || !lesson.hasVideo;
+              const locked = !hasAccess || !lesson.hasVideo || accessLoading;
               return (
                 <button
                   key={lesson.id}
@@ -181,7 +200,7 @@ const CourseDetail: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {plans.map((plan) => {
-                const locked = !hasAccess || !plan.hasPdf;
+                const locked = !hasAccess || !plan.hasPdf || accessLoading;
                 return (
                   <div key={plan.id} className="bg-[#111] p-6 rounded-2xl border border-white/5 flex items-center justify-between">
                     <div className="text-right" dir="rtl">
@@ -202,10 +221,10 @@ const CourseDetail: React.FC = () => {
                           return;
                         }
                         if (res.status === 403) {
-                          alert("Locked: you don't have access to this plan.");
+                          toast.info("Locked: you don't have access to this plan.");
                           return;
                         }
-                        alert(res.error?.detail || "Download failed");
+                        toast.error(res.error?.detail || "Download failed");
                       }}
                       className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition
                         ${locked ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white text-black hover:bg-red-500 hover:text-white'}`}

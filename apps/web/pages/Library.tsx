@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { CoursePublic, AccessCheckResponse } from '../types';
-import { Loading, ErrorState } from '../components/Layout';
+import { ErrorState } from '../components/Layout';
 
 const Library: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ const Library: React.FC = () => {
         load();
     }, []);
 
-    if (loading) return <Loading />;
+    if (error) return <ErrorState status={500} message={error} />;
     if (error) return <ErrorState status={500} message={error} />;
 
     return (
@@ -48,7 +48,13 @@ const Library: React.FC = () => {
                 </Link>
             </div>
 
-            {courses.length === 0 ? (
+            {loading ? (
+                <div className="grid gap-4 mt-8">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="bg-[#111] h-20 rounded-xl border border-white/5 animate-pulse"></div>
+                    ))}
+                </div>
+            ) : courses.length === 0 ? (
                 <div className="bg-[#111] border border-white/5 p-12 rounded-3xl text-center mt-12">
                     <h2 className="text-xl font-bold text-gray-500 mb-4">No Active Access</h2>
                     <p className="text-sm text-gray-600" dir="rtl">

@@ -67,18 +67,32 @@ const Success: React.FC = () => {
                             Access <span className="text-green-500">Granted</span>
                         </h1>
                         <p className="text-gray-400 text-sm mb-8">
-                            Your transaction was successful. Welcome to the program.
+                            Payment confirmed. Access may take a few seconds.
                         </p>
-                        {courseId && (
+
+                        <div className="space-y-3">
+                            {courseId && (
+                                <Link
+                                    to={`/courses/${courseId}`}
+                                    className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
+                                >
+                                    Go to course
+                                </Link>
+                            )}
+
                             <Link
-                                to={`/program/${courseId}`}
-                                className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
+                                to="/library"
+                                className={`block w-full border border-white/20 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-white/5 transition-colors ${!courseId && 'bg-white/5'}`}
                             >
-                                Start Training
+                                Go to My Library
                             </Link>
-                        )}
-                        <div className="mt-4">
-                            <Link to="/" className="text-gray-500 hover:text-white text-xs">Return to Courses</Link>
+
+                            <Link
+                                to="/"
+                                className="block w-full text-gray-500 py-3 rounded-xl text-xs uppercase tracking-widest hover:text-white transition-colors mt-4"
+                            >
+                                Back to Home
+                            </Link>
                         </div>
                     </>
                 )}

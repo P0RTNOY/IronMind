@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { apiFetch, fetchLessonPlayback } from '../lib/api';
+import { apiFetch } from '../lib/api';
 import { LessonPublic } from '../types';
-import { Loading, ErrorState } from '../components/Layout';
+import { ErrorState } from '../components/Layout';
+import { toast } from '../components/toast';
 
 type PlaybackResponse = { provider: string; embedUrl: string; expiresIn: null };
 
@@ -28,6 +29,7 @@ const LessonPlayer: React.FC = () => {
                 return;
             }
             if (!(lessonRes.status === 200 && lessonRes.data)) {
+                toast.error("Failed to fetch lesson data.");
                 setStatus('error');
                 setError(lessonRes.error);
                 return;
@@ -60,6 +62,7 @@ const LessonPlayer: React.FC = () => {
                 return;
             }
 
+            toast.error("An error occurred during secure playback fetch.");
             setStatus('error');
             setError(playbackRes.error);
         };
@@ -67,7 +70,23 @@ const LessonPlayer: React.FC = () => {
         load();
     }, [id]);
 
-    if (status === 'loading') return <Loading />;
+    if (status === 'loading') return (
+        <div className="max-w-6xl mx-auto px-4 py-12 animate-pulse">
+            <div className="mb-8 flex justify-between items-center">
+                <div className="w-32 h-4 bg-white/10 rounded"></div>
+                <div className="w-32 h-3 bg-white/5 rounded"></div>
+            </div>
+            <div className="bg-[#111] border border-white/5 rounded-3xl overflow-hidden">
+                <div className="p-8 flex flex-col items-end gap-3 text-right" dir="rtl">
+                    <div className="w-64 h-8 bg-white/10 rounded-lg"></div>
+                    <div className="w-96 h-4 bg-white/5 rounded"></div>
+                </div>
+                <div className="px-6 pb-8">
+                    <div className="w-full aspect-video rounded-2xl bg-white/5"></div>
+                </div>
+            </div>
+        </div>
+    );
     if (status === 'notfound') return <ErrorState status={404} />;
     if (status === 'error') return <ErrorState status={500} message={error} />;
     if (!lesson) return <ErrorState status={404} />;
@@ -90,7 +109,7 @@ const LessonPlayer: React.FC = () => {
                         to={`/courses/${lesson.courseId}`}
                         className="inline-block bg-white text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition"
                     >
-                        Go to Purchase
+                        Purchase Access
                     </Link>
                 </div>
             </div>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import { SearchResult } from '../types';
 import { Loading } from '../components/Layout';
+import { toast } from '../components/toast';
 import { Link } from 'react-router-dom';
 
 const Search: React.FC = () => {
@@ -36,10 +37,10 @@ const Search: React.FC = () => {
       return;
     }
     if (res.status === 403) {
-      alert("Locked: you don't have access to this plan. Acquire the mission access.");
+      toast.info("Locked: you don't have access to this plan. Acquire the mission access.");
       return;
     }
-    alert(res.error?.detail || "Download failed");
+    toast.error(res.error?.detail || "Download failed");
   };
 
   return (

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     EMAIL_FROM: str = "Iron Mind <noreply@ironmind.app>"
 
+    # Payments
+    PAYMENTS_PROVIDER: str = "stub"
+    PAYMENTS_REPO: str = "firestore"
+
     @field_validator("ADMIN_UIDS", mode="before")
     def parse_admin_uids(cls, v) -> List[str]:
         if v is None:

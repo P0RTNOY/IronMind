@@ -24,10 +24,10 @@ async def get_current_user_cookie(
     # 1. Cookie Auth (Primary)
     session_id = request.cookies.get("ironmind_session")
     
-    # If no cookie, try Dev Override
+    # If no cookie, try Dev Override (NEVER in prod)
     if not session_id:
         debug_uid = request.headers.get("X-Debug-Uid")
-        if debug_uid:
+        if debug_uid and settings.ENV != "prod":
             is_admin = request.headers.get("X-Debug-Admin") == "1"
             return UserContext(
                 uid=debug_uid,

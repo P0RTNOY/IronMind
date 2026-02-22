@@ -1,4 +1,11 @@
 services:
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    restart: unless-stopped
+
   firestore:
     image: google/cloud-sdk:525.0.0
     environment:
@@ -12,6 +19,7 @@ services:
     build: .
     depends_on:
       - firestore
+      - mailpit
     volumes:
       - .:/app
       - ./secrets/firebase_sa.json:/secrets/firebase_sa.json:ro
@@ -46,6 +54,12 @@ services:
       # Keep base64 empty. (We’ll deal with tokens in “Auth testing” below.)
       FIREBASE_ADMIN_SDK_JSON_BASE64: ""
       FIREBASE_PROJECT_ID: ${PROJECT_ID}
+
+      # Email (Mailpit in dev, Resend in prod)
+      SMTP_HOST: "mailpit"
+      SMTP_PORT: "1025"
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: "Iron Mind <noreply@ironmind.app>"
 
     ports:
       - "8080:8080"

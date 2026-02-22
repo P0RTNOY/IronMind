@@ -29,6 +29,9 @@ export function useAuth() {
             });
 
             if (status === 200 && data) {
+                // Clear any stale Dev Auth state so it doesn't override cookie auth
+                localStorage.removeItem('debugUid');
+                localStorage.removeItem('debugAdmin');
                 setUser({
                     uid: data.uid,
                     email: data.email,

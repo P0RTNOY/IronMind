@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     CURRENCY_DEFAULT: str = "ils"
     APP_VERSION: str = "0.0.1"
 
+    # Email
+    SMTP_HOST: str = "mailpit"
+    SMTP_PORT: int = 1025
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "Iron Mind <noreply@ironmind.app>"
+
     @field_validator("ADMIN_UIDS", mode="before")
     def parse_admin_uids(cls, v) -> List[str]:
         if v is None:

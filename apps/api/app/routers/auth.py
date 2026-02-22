@@ -12,6 +12,7 @@ from google.cloud import firestore
 from app.deps import get_current_user_cookie, get_db
 from app.models import UserContext
 from app.config import settings
+from app.services.email_service import send_magic_link_email
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +76,14 @@ async def request_magic_link(
     prefix = "/api" if settings.ENV == "dev" else "" 
     link = f"{origin}{prefix}/auth/verify?token={token}"
     
-    # Simulate Email Sending
+    # Send email (Mailpit in dev, Resend in prod)
     logger.info(f"MAGIC LINK for {email}: {link}")
-    print(f"MAGIC LINK for {email}: {link}") # Ensure it hits stdout for docker logs
+    try:
+        send_magic_link_email(email, link)
+    except Exception as e:
+        logger.error(f"Failed to send magic link email: {e}")
+        # Still log the link so dev can grab it from logs as fallback
+        print(f"MAGIC LINK for {email}: {link}")
     
     return Response(status_code=204)
 
@@ -182,7 +188,7 @@ async def verify_magic_link(
     
     # Redirect to Frontend
     # If dev/local, settings.FRONTEND_ORIGIN is http://localhost:3000
-    redirect_url = f"{settings.FRONTEND_ORIGIN or 'http://localhost:3000'}/me"
+    redirect_url = f"{settings.FRONTEND_ORIGIN or 'http://localhost:3000'}/#/me"
     response.status_code = 302
     response.headers["Location"] = redirect_url
     return response

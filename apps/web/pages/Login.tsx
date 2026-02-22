@@ -75,7 +75,7 @@ const Login: React.FC = () => {
                     <div className="mt-8 pt-8 border-t border-white/5">
                         <p className="text-gray-600 text-[10px] uppercase tracking-widest mb-4">Development Access</p>
                         <button
-                            onClick={() => navigate('/dev-auth')}
+                            onClick={() => navigate('/auth-debug')}
                             className="text-gray-500 hover:text-white text-xs underline"
                         >
                             Use Dev Auth (Mock User)

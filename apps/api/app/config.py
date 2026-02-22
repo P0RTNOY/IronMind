@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     PAYPLUS_WEBHOOK_VERIFY_MODE: str = "enforce"          # "enforce" | "log_only"
     PAYPLUS_TIMEOUT_SECONDS: int = 15
     PUBLIC_WEBHOOK_BASE_URL: str = "http://localhost:8080"
+    WEBHOOK_RATE_LIMIT_ENABLED: bool = True
+
+    @property
+    def is_prod(self) -> bool:
+        return self.ENV == "prod"
 
     @field_validator("ADMIN_UIDS", mode="before")
     def parse_admin_uids(cls, v) -> List[str]:

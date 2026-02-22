@@ -16,7 +16,9 @@ services:
       - "8081:8080"
 
   api:
-    build: .
+    build:
+      context: .
+      target: dev
     depends_on:
       - firestore
       - mailpit

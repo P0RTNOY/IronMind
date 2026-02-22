@@ -1,7 +1,6 @@
-import time
 import uuid
 import logging
-from contextvars import ContextVar
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -9,35 +8,32 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.logging_config import setup_logging
 from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo
-from app.context import request_id_ctx
+from app.middleware.request_id import RequestIdMiddleware
 
 # Setup logging first
 setup_logging()
 logger = logging.getLogger(__name__)
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        req_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
-        request_id_ctx.set(req_id)
-        
-        start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
-        
-        # Add Request ID to response headers
-        response.headers["X-Request-Id"] = req_id
-        
-        # Log the request (structured)
-        logger.info(
-            "Request processed",
-            extra={
-                "method": request.method,
-                "path": request.url.path,
-                "status_code": response.status_code,
-                "latency": round(process_time, 4)
-            }
-        )
-        return response
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.is_prod:
+        missing = []
+        critical_vars = [
+            ("PAYPLUS_API_KEY", settings.PAYPLUS_API_KEY),
+            ("PAYPLUS_SECRET_KEY", settings.PAYPLUS_SECRET_KEY),
+            ("PUBLIC_WEBHOOK_BASE_URL", settings.PUBLIC_WEBHOOK_BASE_URL)
+        ]
+        if settings.VIMEO_VERIFY_ENABLED:
+            critical_vars.append(("VIMEO_ACCESS_TOKEN", settings.VIMEO_ACCESS_TOKEN))
+            
+        for name, val in critical_vars:
+            if not val or val == "http://localhost:8080":
+                missing.append(name)
+                
+        if missing:
+            raise RuntimeError(f"Missing critical production secrets: {', '.join(missing)}")
+    
+    yield
 
 app = FastAPI(
     title="Iron Mind API",
@@ -46,13 +42,14 @@ app = FastAPI(
     redoc_url=None,
     servers=[
         {"url": "http://localhost:8080", "description": "Local Docker"}
-    ]
+    ],
+    lifespan=lifespan
 )
 
 
 
 # Custom Middleware
-# app.add_middleware(RequestIdMiddleware)
+app.add_middleware(RequestIdMiddleware)
 
 # CORS
 # Using regex for robust matching of localhost/127.0.0.1

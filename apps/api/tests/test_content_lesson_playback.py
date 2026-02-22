@@ -17,9 +17,6 @@ from unittest.mock import patch
 import pytest
 
 # Set env BEFORE importing app modules
-os.environ.setdefault("PAYMENTS_PROVIDER", "stub")
-os.environ.setdefault("PAYMENTS_REPO", "memory")
-os.environ.setdefault("ENV", "test")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

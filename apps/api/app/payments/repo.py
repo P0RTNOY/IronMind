@@ -55,3 +55,8 @@ def get_repos() -> RepoContainer:
         events=repo_events,
         subscriptions=repo_subscriptions,
     )
+
+def reset_repos_cache() -> None:
+    """Test helper: reset cached repo container."""
+    global _memory_repos
+    _memory_repos = None

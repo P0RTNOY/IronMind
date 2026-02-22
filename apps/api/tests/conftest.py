@@ -1,4 +1,10 @@
 import os
+
+# Pytest imports all modules during collection, so session fixtures run TOO LATE.
+# We MUST set env vars before imports here at the top level of conftest.py!
+os.environ["ENV"] = "test"
+os.environ["PAYMENTS_REPO"] = "memory"
+os.environ["PAYMENTS_PROVIDER"] = "stub"
 import uuid
 import pytest
 import httpx
@@ -8,6 +14,24 @@ from google.cloud import firestore
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8080")
 PROJECT_ID = os.environ.get("PROJECT_ID", "ironmind-486909")  # Default to project from .env
+
+@pytest.fixture(autouse=True, scope="session")
+def _force_test_env():
+    # Force deterministic settings for the whole test session
+    os.environ["ENV"] = "test"
+    os.environ["PAYMENTS_REPO"] = "memory"
+    os.environ["PAYMENTS_PROVIDER"] = "stub"
+    yield
+
+@pytest.fixture(autouse=True)
+def _reset_payments_state():
+    # Ensure each test sees a clean payments state, regardless of import order
+    from app.payments import repo as payments_repo
+    from app.payments import repo_memory
+
+    payments_repo.reset_repos_cache()
+    repo_memory.reset()
+    yield
 
 @pytest.fixture(scope="session")
 def client():
@@ -69,3 +93,8 @@ def seed_course(db, cleanup_docs, run_id):
         "updatedAt": now,
     })
     return ref.id
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    from app.security.rate_limit import limiter
+    limiter.clear()

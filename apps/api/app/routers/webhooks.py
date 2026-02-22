@@ -6,7 +6,9 @@ POST /webhooks/stripe    — compatibility shim (calls the new handler)
 """
 
 import logging
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
+
+from app.security.rate_limit import create_rate_limiter_webhook
 
 from app.payments import service as payments_service
 from app.payments.errors import (
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/payments")
+@router.post("/payments", dependencies=[Depends(create_rate_limiter_webhook("webhooks", 600, 60))])
 async def payments_webhook(request: Request):
     """
     Process webhooks from the active payment provider.

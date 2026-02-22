@@ -13,6 +13,7 @@ from app.deps import get_current_user_cookie, get_db
 from app.models import UserContext
 from app.config import settings
 from app.services.email_service import send_magic_link_email
+from app.security.rate_limit import create_rate_limiter_ip
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ COOKIE_NAME = "ironmind_session"
 
 # --- Endpoints ---
 
-@router.post("/auth/request", status_code=204)
+@router.post("/auth/request", status_code=204, dependencies=[Depends(create_rate_limiter_ip("auth_req", 5, 60))])
 async def request_magic_link(
     req: AuthRequest,
     db: firestore.Client = Depends(get_db)

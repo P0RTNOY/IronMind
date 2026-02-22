@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
+from app.security.rate_limit import create_rate_limiter_uid
 from app.deps import get_current_user
 from app.models import UserContext
 from app.repos import plans as plans_repo
@@ -45,7 +46,7 @@ def _validate_pdf_path(path: str) -> bool:
 @router.get("/plans/{plan_id}/download")
 async def download_plan_pdf(
     plan_id: str,
-    user: UserContext = Depends(get_current_user),
+    user: UserContext = Depends(create_rate_limiter_uid("content_dl", 30, 60)),
 ):
     """
     Return a short-lived signed download URL for a plan's PDF.
@@ -99,7 +100,7 @@ async def download_plan_pdf(
 async def get_lesson_playback(
     lesson_id: str,
     request: Request,
-    user: UserContext = Depends(get_current_user),
+    user: UserContext = Depends(create_rate_limiter_uid("content_play", 60, 60)),
 ):
     """
     Return playback info (embed URL) for a lesson video.

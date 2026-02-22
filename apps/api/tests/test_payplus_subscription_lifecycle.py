@@ -17,9 +17,6 @@ from unittest.mock import patch, PropertyMock
 import pytest
 
 # Set env BEFORE importing app modules
-os.environ.setdefault("PAYMENTS_PROVIDER", "payplus")
-os.environ.setdefault("PAYMENTS_REPO", "memory")
-os.environ.setdefault("ENV", "test")
 os.environ.setdefault("PAYPLUS_API_KEY", "test_api_key")
 os.environ.setdefault("PAYPLUS_SECRET_KEY", "test_secret_key")
 os.environ.setdefault("PAYPLUS_PAYMENT_PAGE_UID_ONE_TIME", "test_page_uid")

@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API tests image (dev stage)
+        run: docker compose -f apps/api/docker-compose.yml build api
+
+      - name: Run Pytest
+        run: docker compose -f apps/api/docker-compose.yml run -e ENV=test api python -m pytest tests/ -v

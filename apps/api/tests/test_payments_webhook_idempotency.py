@@ -13,9 +13,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Set env BEFORE importing app
-os.environ["PAYMENTS_PROVIDER"] = "stub"
-os.environ["PAYMENTS_REPO"] = "memory"
-os.environ["ENV"] = "test"
 
 from app.main import app  # noqa: E402
 from app.payments import repo_memory  # noqa: E402

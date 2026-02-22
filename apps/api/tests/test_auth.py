@@ -39,7 +39,7 @@ def get_id_token(custom_token):
         print(f"Error connecting to Identity Toolkit: {e}")
         return None
 
-def test_protected_endpoint(id_token):
+def verify_protected_endpoint(id_token):
     print(f"\nTesting {API_URL}/me with ID token...")
     headers = {"Authorization": f"Bearer {id_token}"}
     
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         if id_token:
             print("Successfully exchanged for ID Token.")
             # 3. Call API
-            if test_protected_endpoint(id_token):
+            if verify_protected_endpoint(id_token):
                 exit(0)
             else:
                 exit(1)

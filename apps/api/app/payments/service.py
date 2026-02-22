@@ -135,12 +135,24 @@ def handle_webhook(
 
     # 4. Route by canonical event type
     if verified.event_type == events.PAYMENT_SUCCEEDED:
-        _handle_payment_succeeded(repos, intent)
+        _handle_payment_succeeded(repos, intent, verified)
         logger.info("Payment succeeded, entitlement granted", extra=log_ctx)
 
     elif verified.event_type == events.PAYMENT_FAILED:
         repos.intents.update_intent(intent.id, {"status": "failed"})
         logger.info("Payment failed", extra=log_ctx)
+
+    elif verified.event_type == events.SUB_RENEWED:
+        _handle_sub_renewed(repos, intent, verified)
+        logger.info("Subscription renewed", extra=log_ctx)
+
+    elif verified.event_type == events.SUB_PAST_DUE:
+        _handle_sub_past_due(repos, intent, verified)
+        logger.info("Subscription past due", extra=log_ctx)
+
+    elif verified.event_type == events.SUB_CANCELED:
+        _handle_sub_canceled(repos, intent, verified)
+        logger.info("Subscription canceled", extra=log_ctx)
 
     else:
         logger.info("Unhandled event type, ignoring", extra=log_ctx)
@@ -149,11 +161,28 @@ def handle_webhook(
     return {"ok": True, "duplicate": False}
 
 
-def _handle_payment_succeeded(repos, intent: PaymentIntent) -> None:
+# ── Helpers ─────────────────────────────────────────────────────────
+
+def _build_subscription_id(
+    uid: str,
+    provider: str,
+    provider_subscription_id: str | None,
+    intent_provider_ref: str | None,
+) -> str:
+    """
+    Deterministic subscription ID.
+    - With provider_subscription_id: sub_{uid}_{provider}_{id}
+    - Without (bootstrap): sub_{uid}_{provider}_bootstrap_{providerRef}
+    """
+    if provider_subscription_id:
+        return f"sub_{uid}_{provider}_{provider_subscription_id}"
+    return f"sub_{uid}_{provider}_bootstrap_{intent_provider_ref or 'unknown'}"
+
+
+def _handle_payment_succeeded(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
     """Mark intent as succeeded and grant the appropriate entitlement."""
     repos.intents.update_intent(intent.id, {"status": "succeeded"})
 
-    # Grant entitlement using existing repos
     from app.repos import entitlements
 
     if intent.scope == "course" and intent.courseId:
@@ -163,11 +192,112 @@ def _handle_payment_succeeded(repos, intent: PaymentIntent) -> None:
             source="one_time",
         )
     elif intent.scope == "membership":
+        provider_sub_id = verified.payload.get("provider_subscription_id")
+
+        # Bootstrap subscription record
+        from app.payments.models import Subscription
+        sub_id = _build_subscription_id(
+            intent.uid, intent.provider, provider_sub_id, intent.providerRef
+        )
+        repos.subscriptions.upsert_subscription(Subscription(
+            id=sub_id,
+            uid=intent.uid,
+            provider=intent.provider,
+            providerSubscriptionId=provider_sub_id or intent.providerRef or "",
+            status="active",
+        ))
+
         entitlements.upsert_membership_entitlement(
             uid=intent.uid,
             status="active",
             expires_at=None,
             source="subscription",
             provider=intent.provider,
-            provider_subscription_id=intent.providerRef or None,
+            provider_subscription_id=provider_sub_id or intent.providerRef or None,
         )
+
+
+def _handle_sub_renewed(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
+    """Subscription renewed — upsert subscription + keep entitlement active."""
+    provider_sub_id = verified.payload.get("provider_subscription_id")
+
+    from app.payments.models import Subscription
+    sub_id = _build_subscription_id(
+        intent.uid, intent.provider, provider_sub_id, intent.providerRef
+    )
+    repos.subscriptions.upsert_subscription(Subscription(
+        id=sub_id,
+        uid=intent.uid,
+        provider=intent.provider,
+        providerSubscriptionId=provider_sub_id or intent.providerRef or "",
+        status="active",
+    ))
+
+    from app.repos import entitlements
+    entitlements.upsert_membership_entitlement(
+        uid=intent.uid,
+        status="active",
+        expires_at=None,
+        source="subscription",
+        provider=intent.provider,
+        provider_subscription_id=provider_sub_id or intent.providerRef or None,
+    )
+
+
+def _handle_sub_past_due(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
+    """Subscription past due — update subscription, keep entitlement active for MVP."""
+    provider_sub_id = verified.payload.get("provider_subscription_id")
+
+    from app.payments.models import Subscription
+    sub_id = _build_subscription_id(
+        intent.uid, intent.provider, provider_sub_id, intent.providerRef
+    )
+    repos.subscriptions.upsert_subscription(Subscription(
+        id=sub_id,
+        uid=intent.uid,
+        provider=intent.provider,
+        providerSubscriptionId=provider_sub_id or intent.providerRef or "",
+        status="past_due",
+    ))
+
+    # MVP: keep entitlement active during past_due (TODO: add grace period logic)
+    from app.repos import entitlements
+    entitlements.upsert_membership_entitlement(
+        uid=intent.uid,
+        status="active",
+        expires_at=None,
+        source="subscription",
+        provider=intent.provider,
+        provider_subscription_id=provider_sub_id or intent.providerRef or None,
+    )
+    logger.info("Subscription past_due — entitlement kept active (MVP grace)", extra={
+        "uid": intent.uid, "sub_id": sub_id,
+    })
+
+
+def _handle_sub_canceled(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
+    """Subscription canceled — update subscription, revoke entitlement."""
+    provider_sub_id = verified.payload.get("provider_subscription_id")
+
+    from app.payments.models import Subscription
+    sub_id = _build_subscription_id(
+        intent.uid, intent.provider, provider_sub_id, intent.providerRef
+    )
+    repos.subscriptions.upsert_subscription(Subscription(
+        id=sub_id,
+        uid=intent.uid,
+        provider=intent.provider,
+        providerSubscriptionId=provider_sub_id or intent.providerRef or "",
+        status="canceled",
+    ))
+
+    from app.repos import entitlements
+    entitlements.upsert_membership_entitlement(
+        uid=intent.uid,
+        status="inactive",
+        expires_at=None,
+        source="subscription",
+        provider=intent.provider,
+        provider_subscription_id=provider_sub_id or intent.providerRef or None,
+    )
+

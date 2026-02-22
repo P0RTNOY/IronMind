@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     PAYMENTS_PROVIDER: str = "stub"
     PAYMENTS_REPO: str = "firestore"
 
+    # PayPlus
+    PAYPLUS_ENV: str = "sandbox"                          # "sandbox" | "prod"
+    PAYPLUS_API_KEY: str = ""
+    PAYPLUS_SECRET_KEY: str = ""
+    PAYPLUS_PAYMENT_PAGE_UID_ONE_TIME: str = ""
+    PAYPLUS_PAYMENT_PAGE_UID_SUBSCRIPTION: str = ""
+    PAYPLUS_WEBHOOK_VERIFY_MODE: str = "enforce"          # "enforce" | "log_only"
+    PAYPLUS_TIMEOUT_SECONDS: int = 15
+    PUBLIC_WEBHOOK_BASE_URL: str = "http://localhost:8080"
+
     @field_validator("ADMIN_UIDS", mode="before")
     def parse_admin_uids(cls, v) -> List[str]:
         if v is None:

@@ -24,4 +24,8 @@ def get_provider(name: str | None = None) -> PaymentProvider:
         from app.payments.providers.stub import StubProvider
         return StubProvider()
 
+    if provider_name == "payplus":
+        from app.payments.providers.payplus import PayPlusProvider
+        return PayPlusProvider()
+
     raise ValueError(f"Unknown payment provider: '{provider_name}'")

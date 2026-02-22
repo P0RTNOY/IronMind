@@ -77,9 +77,18 @@ class Settings(BaseSettings):
         if isinstance(v, list):
             return v
         if isinstance(v, str):
-            if not v.strip():
+            v_str = v.strip()
+            if not v_str:
                 return []
-            return [uid.strip() for uid in v.split(",") if uid.strip()]
+            import json
+            if v_str.startswith("[") and v_str.endswith("]"):
+                try:
+                    parsed = json.loads(v_str)
+                    if isinstance(parsed, list):
+                        return [str(uid).strip() for uid in parsed if str(uid).strip()]
+                except Exception:
+                    pass
+            return [uid.strip() for uid in v_str.split(",") if uid.strip()]
         return []
 
 

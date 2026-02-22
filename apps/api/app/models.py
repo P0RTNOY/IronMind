@@ -9,18 +9,6 @@ class UserContext(BaseModel):
     name: Optional[str] = None
     is_admin: bool = False
 
-# Domain Models
-class Entitlement(BaseModel):
-    id: str
-    uid: str
-    kind: Literal["course", "membership"]
-    status: Literal["active", "inactive"]
-    source: Literal["one_time", "subscription", "manual"]
-    courseId: Optional[str] = None
-    stripeSubscriptionId: Optional[str] = None
-    createdAt: datetime
-    expiresAt: Optional[datetime] = None
-
 # Public Domain Models
 class CoursePublic(BaseModel):
     id: str
@@ -28,8 +16,12 @@ class CoursePublic(BaseModel):
     descriptionHe: str
     type: Literal["one_time", "subscription"]
     published: bool
+    coverImageUrl: Optional[str] = None
+    tags: List[str] = []
     createdAt: Optional[datetime] = None
     updatedAt: Optional[datetime] = None
+
+    model_config = {"extra": "ignore"}
 
 class LessonPublic(BaseModel):
     id: str

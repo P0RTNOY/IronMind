@@ -38,7 +38,9 @@ class LessonPublic(BaseModel):
     descriptionHe: str
     movementCategory: str
     tags: List[str] = []
-    vimeoVideoId: Optional[str] = None
+    vimeoVideoId: Optional[str] = None     # kept for compat, ALWAYS None in public output
+    hasVideo: bool = False
+    playbackEndpoint: Optional[str] = None
     orderIndex: int
     published: bool
 

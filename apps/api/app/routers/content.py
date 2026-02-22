@@ -1,7 +1,8 @@
 """
 Content router — entitlement-gated content delivery.
 
-Provides signed download URLs for protected assets (PDF plans).
+Provides signed download URLs for protected assets (PDF plans)
+and gated playback info for lesson videos.
 """
 
 import logging
@@ -12,6 +13,7 @@ from app.config import settings
 from app.deps import get_current_user
 from app.models import UserContext
 from app.repos import plans as plans_repo
+from app.repos import lessons as lessons_repo
 from app.services import access_service
 from app.services.storage import generate_signed_download_url
 
@@ -88,3 +90,50 @@ async def download_plan_pdf(
     logger.info("Plan PDF download URL generated", extra=log_ctx)
 
     return {"url": url, "expiresIn": ttl}
+
+
+# ── Lesson video playback ───────────────────────────────────────────
+
+@router.get("/lessons/{lesson_id}/playback")
+async def get_lesson_playback(
+    lesson_id: str,
+    user: UserContext = Depends(get_current_user),
+):
+    """
+    Return playback info (embed URL) for a lesson video.
+    Requires authentication + course entitlement.
+    """
+    uid = user.uid
+    log_ctx = {"uid": uid, "lesson_id": lesson_id}
+
+    # 1. Load lesson
+    lesson = lessons_repo.get_lesson_admin(lesson_id)
+    if not lesson:
+        logger.info("Lesson not found", extra=log_ctx)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+
+    course_id = lesson.get("courseId")
+    log_ctx["courseId"] = course_id
+
+    if not course_id:
+        logger.info("Lesson has no courseId", extra=log_ctx)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson has no associated course")
+
+    # 2. Access check
+    allowed = access_service.can_access_course(uid, course_id)
+    if not allowed:
+        logger.info("Access denied for lesson playback", extra=log_ctx)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # 3. Verify video exists (do NOT log video ID)
+    video_id = lesson.get("vimeoVideoId")
+    if not video_id:
+        logger.info("Lesson has no video", extra=log_ctx)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No video available for this lesson")
+
+    # 4. Build embed URL
+    embed_url = f"{settings.VIMEO_EMBED_BASE_URL}/{video_id}"
+
+    logger.info("Lesson playback URL generated", extra=log_ctx)
+
+    return {"provider": settings.VIDEO_PROVIDER, "embedUrl": embed_url, "expiresIn": None}

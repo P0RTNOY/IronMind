@@ -36,7 +36,15 @@ def search_published_lessons(query_text: str, limit: int = 50) -> List[LessonPub
             q in desc or 
             q in category or 
             any(q in t for t in tags)):
-            results.append(LessonPublic(id=doc.id, **data))
+            has_video = bool(data.get("vimeoVideoId"))
+            safe_data = {k: v for k, v in data.items() if k != "vimeoVideoId"}
+            results.append(LessonPublic(
+                id=doc.id,
+                vimeoVideoId=None,  # NEVER expose raw video ID
+                hasVideo=has_video,
+                playbackEndpoint=f"/content/lessons/{doc.id}/playback" if has_video else None,
+                **safe_data,
+            ))
             
     return results[:limit]
 

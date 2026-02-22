@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     GCS_BUCKET_NAME: Optional[str] = None
     GCS_PUBLIC_BASE_URL: str = "https://storage.googleapis.com"
     SIGNED_URL_TTL_SECONDS: int = 900  # 15 minutes
+
+    # Video
+    VIDEO_PROVIDER: str = "vimeo"
+    VIMEO_EMBED_BASE_URL: str = "https://player.vimeo.com/video"
     
     CURRENCY_DEFAULT: str = "ils"
     APP_VERSION: str = "0.0.1"

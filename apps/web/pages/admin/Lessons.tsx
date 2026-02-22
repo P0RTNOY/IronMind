@@ -134,10 +134,23 @@ const LessonModal: React.FC<{
         orderIndex: 0,
         published: true
     });
+    const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
 
     useEffect(() => {
         if (lesson) setFormData(lesson);
     }, [lesson]);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setPreviewVideoId(null);
+            }
+        };
+        if (previewVideoId) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewVideoId]);
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
@@ -165,6 +178,24 @@ const LessonModal: React.FC<{
                         <div>
                             <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Vimeo ID</label>
                             <input value={formData.vimeoVideoId || ''} onChange={e => setFormData(p => ({ ...p, vimeoVideoId: e.target.value }))} className="w-full bg-black border border-white/20 rounded p-2 text-white" />
+                            {formData.vimeoVideoId && (
+                                <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                                    <div className="flex items-center gap-2 text-yellow-500 mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+                                        <span className="text-sm font-medium">Vimeo Privacy Check</span>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mb-3">
+                                        Verify this video has "Specific domains" embedding enabled in Vimeo.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPreviewVideoId(formData.vimeoVideoId as string)}
+                                        className="text-xs bg-black/50 hover:bg-black border border-white/20 px-3 py-1.5 rounded transition-colors text-white"
+                                    >
+                                        Test Embed Preview
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase text-gray-400 mb-1">Category</label>
@@ -178,6 +209,19 @@ const LessonModal: React.FC<{
                     </div>
                 </div>
             </div>
+
+            {previewVideoId && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-8" onClick={() => setPreviewVideoId(null)}>
+                    <div className="w-full max-w-4xl relative" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setPreviewVideoId(null)} className="absolute -top-10 right-0 text-white font-bold uppercase">Close</button>
+                        <iframe
+                            src={`https://player.vimeo.com/video/${previewVideoId}`}
+                            className="w-full aspect-video rounded border border-white/20 shadow-2xl"
+                            allowFullScreen
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

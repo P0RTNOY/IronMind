@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Video
     VIDEO_PROVIDER: str = "vimeo"
     VIMEO_EMBED_BASE_URL: str = "https://player.vimeo.com/video"
+    ALLOWED_EMBED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
     
     CURRENCY_DEFAULT: str = "ils"
     APP_VERSION: str = "0.0.1"
@@ -70,6 +71,18 @@ class Settings(BaseSettings):
             if not v.strip():
                 return []
             return [uid.strip() for uid in v.split(",") if uid.strip()]
+        return []
+
+    @field_validator("ALLOWED_EMBED_ORIGINS", mode="before")
+    def parse_embed_origins(cls, v) -> List[str]:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            if not v.strip():
+                return []
+            return [orig.strip() for orig in v.split(",") if orig.strip()]
         return []
 
     class Config:

@@ -6,8 +6,9 @@ and gated playback info for lesson videos.
 """
 
 import logging
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.deps import get_current_user
@@ -97,6 +98,7 @@ async def download_plan_pdf(
 @router.get("/lessons/{lesson_id}/playback")
 async def get_lesson_playback(
     lesson_id: str,
+    request: Request,
     user: UserContext = Depends(get_current_user),
 ):
     """
@@ -105,6 +107,18 @@ async def get_lesson_playback(
     """
     uid = user.uid
     log_ctx = {"uid": uid, "lesson_id": lesson_id}
+
+    # Advisory logging for unknown origins
+    raw_origin = request.headers.get("origin") or request.headers.get("referer")
+    if raw_origin:
+        parsed = urlparse(raw_origin)
+        # Reconstruct normalized origin (scheme://netloc)
+        origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else raw_origin
+        
+        if origin not in settings.ALLOWED_EMBED_ORIGINS:
+            if settings.ENV == "prod":
+                logger.warning("Vimeo playback payload requested from unverified origin",
+                               extra={**log_ctx, "origin": origin, "raw_origin": raw_origin})
 
     # 1. Load lesson
     lesson = lessons_repo.get_lesson_admin(lesson_id)

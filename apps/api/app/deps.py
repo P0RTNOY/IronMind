@@ -21,24 +21,25 @@ async def get_current_user_cookie(
     """
     Validate Session Cookie (Prod) or Debug Header (Dev).
     """
-    # 1. Dev Override
-    debug_uid = request.headers.get("X-Debug-Uid")
-    if debug_uid:
-        is_admin = request.headers.get("X-Debug-Admin") == "1"
-        return UserContext(
-            uid=debug_uid,
-            email=f"{debug_uid}@example.com",
-            name="Debug User",
-            is_admin=is_admin
-        )
-
-    # 2. Cookie Auth
+    # 1. Cookie Auth (Primary)
     session_id = request.cookies.get("ironmind_session")
+    
+    # If no cookie, try Dev Override
     if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing session cookie"
-        )
+        debug_uid = request.headers.get("X-Debug-Uid")
+        if debug_uid:
+            is_admin = request.headers.get("X-Debug-Admin") == "1"
+            return UserContext(
+                uid=debug_uid,
+                email=f"{debug_uid}@example.com",
+                name="Debug User",
+                is_admin=is_admin
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing session cookie"
+            )
 
     # 3. Validate Session from Firestore
     session_ref = db.collection("sessions").document(session_id)

@@ -70,7 +70,10 @@ async def request_magic_link(
     # Construct Link
     # In Prod: Use settings.FRONTEND_ORIGIN
     origin = settings.FRONTEND_ORIGIN or "http://localhost:3000"
-    link = f"{origin}/auth/verify?token={token}"
+    
+    # If using Vite proxy or a deployment where the API sits behind /api
+    prefix = "/api" if settings.ENV == "dev" else "" 
+    link = f"{origin}{prefix}/auth/verify?token={token}"
     
     # Simulate Email Sending
     logger.info(f"MAGIC LINK for {email}: {link}")

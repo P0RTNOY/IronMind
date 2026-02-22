@@ -85,8 +85,6 @@ def get_course_entitlement(uid: str, course_id: str) -> Optional[dict]:
     doc = db.collection("entitlements").document(ent_id).get()
     return doc.to_dict() if doc.exists else None
 
-    return False
-
 def grant_course(uid: str, course_id: str, source: str = "manual") -> dict:
     """
     Grant access to a course. 

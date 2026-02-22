@@ -74,5 +74,14 @@ export function useAuth() {
         }
     };
 
-    return { user, loading, loginDev, logout };
+    return {
+        user,
+        loading,
+        login: loginDev,
+        loginDev,
+        logout,
+        uid: user?.uid,
+        isAdmin: user?.is_admin,
+        isAuthorized: !!user
+    };
 }

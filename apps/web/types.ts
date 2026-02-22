@@ -43,6 +43,8 @@ export interface LessonPublic {
   movementCategory: string;
   tags: string[];
   vimeoVideoId?: string | null;
+  hasVideo?: boolean;
+  playbackEndpoint?: string | null;
   orderIndex: number;
   published: boolean;
 }
@@ -54,6 +56,8 @@ export interface PlanPublic {
   descriptionHe: string;
   tags: string[];
   pdfPath?: string | null;
+  hasPdf?: boolean;
+  pdfDownloadEndpoint?: string | null;
   published: boolean;
 }
 

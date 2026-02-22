@@ -48,6 +48,47 @@ def search_published_lessons(query_text: str, limit: int = 50) -> List[LessonPub
             
     return results[:limit]
 
+def list_published_lessons_by_course(course_id: str, limit: int = 200) -> List[LessonPublic]:
+    db = get_db()
+    query = db.collection("lessons").where("published", "==", True).where("courseId", "==", course_id).limit(limit)
+    docs = query.stream()
+    
+    results = []
+    for doc in docs:
+        data = doc.to_dict()
+        has_video = bool(data.get("vimeoVideoId"))
+        safe_data = {k: v for k, v in data.items() if k != "vimeoVideoId"}
+        results.append(LessonPublic(
+            id=doc.id,
+            vimeoVideoId=None,
+            hasVideo=has_video,
+            playbackEndpoint=f"/content/lessons/{doc.id}/playback" if has_video else None,
+            **safe_data,
+        ))
+        
+    results.sort(key=lambda x: getattr(x, "orderIndex", 0))
+    return results
+
+def get_published_lesson(lesson_id: str) -> Optional[LessonPublic]:
+    db = get_db()
+    snap = db.collection("lessons").document(lesson_id).get()
+    if not snap.exists:
+        return None
+        
+    data = snap.to_dict()
+    if not data.get("published"):
+        return None
+        
+    has_video = bool(data.get("vimeoVideoId"))
+    safe_data = {k: v for k, v in data.items() if k != "vimeoVideoId"}
+    return LessonPublic(
+        id=snap.id,
+        vimeoVideoId=None,
+        hasVideo=has_video,
+        playbackEndpoint=f"/content/lessons/{snap.id}/playback" if has_video else None,
+        **safe_data,
+    )
+
 # --- Admin CRUD ---
 
 def get_lesson_admin(lesson_id: str) -> Optional[dict]:

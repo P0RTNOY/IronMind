@@ -25,11 +25,28 @@ const Search: React.FC = () => {
     setLoading(false);
   };
 
+  const downloadPlan = async (planId: string) => {
+    const res = await apiFetch<{ url: string }>(`/content/plans/${planId}/download`, { skipRedirect: true });
+    if (res.status === 200 && res.data?.url) {
+      window.open(res.data.url, "_blank");
+      return;
+    }
+    if (res.status === 401) {
+      window.location.hash = '#/login';
+      return;
+    }
+    if (res.status === 403) {
+      alert("Locked: you don't have access to this plan. Acquire the mission access.");
+      return;
+    }
+    alert(res.error?.detail || "Download failed");
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       <div className="relative group">
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Protocols, Lessons, or Plans..."
@@ -71,13 +88,20 @@ const Search: React.FC = () => {
                 </h3>
                 <div className="grid gap-4">
                   {results.lessons.map(l => (
-                    <div key={l.id} className="bg-[#111] p-6 rounded-xl border border-white/5 flex flex-col gap-1">
+                    <Link
+                      key={l.id}
+                      to={`/lessons/${l.id}`}
+                      className="bg-[#111] p-6 rounded-xl border border-white/5 hover:border-red-500/30 transition flex flex-col gap-1 group"
+                    >
                       <div className="flex justify-between items-start">
-                        <span className="font-bold text-white" dir="rtl">{l.titleHe}</span>
+                        <span className="font-bold text-white group-hover:text-red-500 transition" dir="rtl">{l.titleHe}</span>
                         <span className="bg-white/5 px-2 py-1 rounded text-[10px] text-gray-500">{l.movementCategory}</span>
                       </div>
                       <p className="text-sm text-gray-500" dir="rtl">{l.descriptionHe}</p>
-                    </div>
+                      <div className="mt-2 text-[10px] text-gray-600 flex justify-end">
+                        <span>{l.hasVideo ? '▶ View Lesson' : 'No Video'}</span>
+                      </div>
+                    </Link>
                   ))}
                 </div>
               </section>
@@ -94,7 +118,17 @@ const Search: React.FC = () => {
                   {results.plans.map(p => (
                     <div key={p.id} className="bg-[#111] p-6 rounded-xl border border-white/5 flex justify-between items-center">
                       <span className="font-bold text-white" dir="rtl">{p.titleHe}</span>
-                      <span className="text-red-500 text-xs">PDF DOCUMENT</span>
+
+                      {p.hasPdf ? (
+                        <button
+                          onClick={() => downloadPlan(p.id)}
+                          className="text-xs font-black uppercase tracking-widest bg-white text-black px-4 py-2 rounded-lg hover:bg-red-500 hover:text-white transition shadow-lg shadow-white/5"
+                        >
+                          Download PDF
+                        </button>
+                      ) : (
+                        <span className="text-gray-600 text-xs font-black uppercase tracking-widest">NO PDF</span>
+                      )}
                     </div>
                   ))}
                 </div>

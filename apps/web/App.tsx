@@ -27,6 +27,8 @@ const Search = lazy(() => import('./pages/Search'));
 const Me = lazy(() => import('./pages/Me'));
 const Access = lazy(() => import('./pages/Access'));
 const DevAuth = lazy(() => import('./pages/DevAuth'));
+const LessonPlayer = lazy(() => import('./pages/LessonPlayer'));
+const Library = lazy(() => import('./pages/Library'));
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('./pages/Admin'));
@@ -50,7 +52,10 @@ const App: React.FC = () => {
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              {/* Legacy /program preserved for now, mapping new /courses/:id */}
               <Route path="/program/:id" element={<CourseDetail />} />
+              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/lessons/:id" element={<LessonPlayer />} />
               <Route path="/search" element={<Search />} />
               <Route path="/auth-debug" element={<DevAuth />} />
               <Route path="/success" element={<Success />} />
@@ -59,6 +64,7 @@ const App: React.FC = () => {
               {/* Protected Routes */}
               <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
               <Route path="/access" element={<RequireAuth><Access /></RequireAuth>} />
+              <Route path="/library" element={<RequireAuth><Library /></RequireAuth>} />
 
               {/* Admin Routes */}
               <Route path="/admin" element={<RequireAuth><AdminLayout><AdminDashboard /></AdminLayout></RequireAuth>} />

@@ -1,23 +1,31 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch } from '../lib/api';
-import { CoursePublic, AccessCheckResponse } from '../types';
+import { apiFetch, fetchCourse, fetchCourseLessons, fetchCoursePlans, checkCourseAccess, fetchPlanDownload } from '../lib/api';
+import { CoursePublic, LessonPublic, PlanPublic } from '../types';
 import { Loading, ErrorState } from '../components/Layout';
+import { useNavigate } from 'react-router-dom';
 
 const CourseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
   const [course, setCourse] = useState<CoursePublic | null>(null);
+  const [lessons, setLessons] = useState<LessonPublic[]>([]);
+  const [plans, setPlans] = useState<PlanPublic[]>([]);
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(true);
   const [error, setError] = useState<{ status: number, data: any } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       if (!id) return;
+      setLoading(true);
+      setContentLoading(true);
 
       // 1. Fetch public course details
-      const courseReq = await apiFetch<CoursePublic>(`/courses/${id}`);
+      const courseReq = await fetchCourse(id);
       if (courseReq.status === 200 && courseReq.data) {
         setCourse(courseReq.data);
       } else {
@@ -26,15 +34,19 @@ const CourseDetail: React.FC = () => {
         return;
       }
 
-      // 2. Check access (skip redirect so guests can view the page)
-      const accessReq = await apiFetch<AccessCheckResponse>(`/access/courses/${id}`, {
-        skipRedirect: true
-      });
-      if (accessReq.status === 200 && accessReq.data?.allowed) {
-        setHasAccess(true);
-      } else {
-        setHasAccess(false);
-      }
+      // 2. Fetch public content in parallel
+      const [lessonsReq, plansReq] = await Promise.all([
+        fetchCourseLessons(id),
+        fetchCoursePlans(id)
+      ]);
+
+      if (lessonsReq.status === 200 && lessonsReq.data) setLessons(lessonsReq.data);
+      if (plansReq.status === 200 && plansReq.data) setPlans(plansReq.data);
+      setContentLoading(false);
+
+      // 3. Check access (skip redirect so guests can view the page)
+      const accessReq = await checkCourseAccess(id);
+      setHasAccess(Boolean(accessReq.data?.allowed));
 
       setLoading(false);
     };
@@ -126,26 +138,85 @@ const CourseDetail: React.FC = () => {
           </div>
         )}
 
-        <div className={`space-y-4 ${!hasAccess ? 'opacity-40 grayscale pointer-events-none' : ''}`}>
-          {[
-            { title: 'יסודות ומבנה', desc: 'הכרת המבנה הבסיסי של הפרוטוקול', time: '12:45' },
-            { title: 'טכניקות מתקדמות', desc: 'שיפור ביצועים תחת לחץ', time: '08:20' },
-            { title: 'סיכום ויישום', desc: 'אינטגרציה של כלל הידע שנרכש', time: '15:10' }
-          ].map((item, n) => (
-            <div key={n} className="bg-[#111] p-6 rounded-2xl flex items-center justify-between border border-white/5 group hover:border-white/20 transition-all cursor-pointer">
-              <div className="flex items-center gap-8 text-right" dir="rtl">
-                <span className="text-3xl font-black text-white/10 italic group-hover:text-red-500/20 transition-colors">{(n + 1).toString().padStart(2, '0')}</span>
-                <div>
-                  <h4 className="font-bold text-white group-hover:text-red-500 transition-colors">{item.title}</h4>
-                  <p className="text-xs text-gray-500">{item.desc}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] font-mono text-gray-600">{item.time}</span>
-                <span className="text-xl">{hasAccess ? '▶' : '🔒'}</span>
-              </div>
+        <div className="space-y-4">
+          {contentLoading ? (
+            <div className="text-gray-500 text-sm">Loading lessons…</div>
+          ) : lessons.length === 0 ? (
+            <div className="text-gray-500 text-sm">No lessons published yet.</div>
+          ) : (
+            lessons.map((lesson, idx) => {
+              const locked = !hasAccess || !lesson.hasVideo;
+              return (
+                <button
+                  key={lesson.id}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => navigate(`/lessons/${lesson.id}`)}
+                  className={`w-full text-left bg-[#111] p-6 rounded-2xl flex items-center justify-between border border-white/5 transition-all
+                    ${locked ? 'opacity-60 cursor-not-allowed' : 'hover:border-white/20 cursor-pointer'}`}
+                >
+                  <div className="flex items-center gap-8 text-right" dir="rtl">
+                    <span className="text-3xl font-black text-white/10 italic">{String(idx + 1).padStart(2, '0')}</span>
+                    <div>
+                      <h4 className="font-bold text-white">{lesson.titleHe}</h4>
+                      <p className="text-xs text-gray-500">{lesson.descriptionHe}</p>
+                    </div>
+                  </div>
+                  <span className="text-xl">{locked ? '🔒' : '▶'}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="mt-10">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4 mb-6">
+            <h2 className="text-sm font-black text-gray-600 uppercase tracking-[0.2em]">Plans</h2>
+          </div>
+
+          {contentLoading ? (
+            <div className="text-gray-500 text-sm">Loading plans…</div>
+          ) : plans.length === 0 ? (
+            <div className="text-gray-500 text-sm">No plans published yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {plans.map((plan) => {
+                const locked = !hasAccess || !plan.hasPdf;
+                return (
+                  <div key={plan.id} className="bg-[#111] p-6 rounded-2xl border border-white/5 flex items-center justify-between">
+                    <div className="text-right" dir="rtl">
+                      <h4 className="font-bold text-white">{plan.titleHe}</h4>
+                      <p className="text-xs text-gray-500">{plan.descriptionHe}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={locked}
+                      onClick={async () => {
+                        const res = await fetchPlanDownload(plan.id);
+                        if (res.status === 200 && res.data?.url) {
+                          window.open(res.data.url, "_blank");
+                          return;
+                        }
+                        if (res.status === 401) {
+                          window.location.hash = '#/login';
+                          return;
+                        }
+                        if (res.status === 403) {
+                          alert("Locked: you don't have access to this plan.");
+                          return;
+                        }
+                        alert(res.error?.detail || "Download failed");
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition
+                        ${locked ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white text-black hover:bg-red-500 hover:text-white'}`}
+                    >
+                      {locked ? "Locked" : "Download PDF"}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

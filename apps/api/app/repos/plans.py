@@ -37,6 +37,51 @@ def search_published_plans(query_text: str, limit: int = 50) -> List[PlanPublic]
             
     return results[:limit]
 
+def list_published_plans_by_course(course_id: str, limit: int = 200) -> List[PlanPublic]:
+    db = get_db()
+    query = db.collection("plans").where("published", "==", True).where("courseId", "==", course_id).limit(limit)
+    docs = query.stream()
+    
+    raw_results = []
+    for doc in docs:
+        raw_results.append({"id": doc.id, **doc.to_dict()})
+        
+    raw_results.sort(key=lambda x: str(x.get("createdAt", "")), reverse=True)
+    
+    results = []
+    for data in raw_results:
+        has_pdf = bool(data.get("pdfPath"))
+        safe_data = {k: v for k, v in data.items() if k not in ["pdfPath", "id"]}
+        results.append(PlanPublic(
+            id=data["id"],
+            pdfPath=None,
+            hasPdf=has_pdf,
+            pdfDownloadEndpoint=f"/content/plans/{data['id']}/download" if has_pdf else None,
+            **safe_data,
+        ))
+        
+    return results
+
+def get_published_plan(plan_id: str) -> Optional[PlanPublic]:
+    db = get_db()
+    snap = db.collection("plans").document(plan_id).get()
+    if not snap.exists:
+        return None
+        
+    data = snap.to_dict()
+    if not data.get("published"):
+        return None
+        
+    has_pdf = bool(data.get("pdfPath"))
+    safe_data = {k: v for k, v in data.items() if k != "pdfPath"}
+    return PlanPublic(
+        id=snap.id,
+        pdfPath=None,
+        hasPdf=has_pdf,
+        pdfDownloadEndpoint=f"/content/plans/{snap.id}/download" if has_pdf else None,
+        **safe_data,
+    )
+
 # --- Admin CRUD ---
 
 def get_plan_admin(plan_id: str) -> Optional[dict]:

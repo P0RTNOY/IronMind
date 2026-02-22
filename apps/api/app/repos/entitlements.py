@@ -37,13 +37,17 @@ def upsert_course_entitlement(
 
 def upsert_membership_entitlement(
     uid: str,
-    stripe_subscription_id: str,
     status: Literal["active", "inactive"],
     expires_at: Optional[datetime],
-    source: str = "subscription"
+    source: str = "subscription",
+    provider: Optional[str] = None,
+    provider_subscription_id: Optional[str] = None,
+    stripe_subscription_id: Optional[str] = None,   # legacy optional
 ) -> None:
     """
     Update membership entitlement status.
+    Writes provider-neutral fields (billingProvider, billingSubscriptionId)
+    when provided. Keeps stripeSubscriptionId for legacy callers.
     """
     db = get_db()
     ent_id = _get_membership_entitlement_id(uid)
@@ -55,22 +59,22 @@ def upsert_membership_entitlement(
         "kind": "membership",
         "status": status,
         "source": source,
-        "stripeSubscriptionId": stripe_subscription_id,
         "updatedAt": datetime.now(timezone.utc)
     }
+
+    # Provider-neutral fields
+    if provider is not None:
+        data["billingProvider"] = provider
+    if provider_subscription_id is not None:
+        data["billingSubscriptionId"] = provider_subscription_id
+
+    # Legacy Stripe field (only if explicitly provided)
+    if stripe_subscription_id is not None:
+        data["stripeSubscriptionId"] = stripe_subscription_id
     
     if expires_at is not None:
         data["expiresAt"] = expires_at
         
-    # If creating for the first time, we want createdAt
-    # We can use set(..., merge=True). 
-    # Note: If doc doesn't exist, merge=True creates it.
-    
-    # Firestore doesn't have a simple "set if missing" for fields inside merge except via transform
-    # simpler to just write createdAt if it's likely new, or accept it updates.
-    # For robust createdAt, we'd check existence, but for this portfolio speed, we set it if missing (not easily done in one shot without read).
-    # We'll just write it.
-    
     doc_ref.set(data, merge=True)
 
 def get_membership_entitlement(uid: str) -> Optional[dict]:

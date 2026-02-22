@@ -9,6 +9,11 @@ import logging
 from fastapi import APIRouter, Request, HTTPException
 
 from app.payments import service as payments_service
+from app.payments.errors import (
+    WebhookPayloadError,
+    WebhookProcessingError,
+    WebhookVerificationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +25,20 @@ async def payments_webhook(request: Request):
     """
     Process webhooks from the active payment provider.
     Reads raw body + headers and delegates to payments.service.handle_webhook().
-    Returns 200 OK with JSON result.
+    Typed exceptions map to HTTP statuses: 401, 400, 500.
     """
     raw_body = await request.body()
     headers = dict(request.headers)
 
-    result = payments_service.handle_webhook(raw_body, headers)
-
-    if not result.get("ok"):
-        # Verification failed — return 400 so provider knows to stop retrying
-        raise HTTPException(status_code=400, detail=result.get("error", "Webhook processing failed"))
-
-    return result
+    try:
+        result = payments_service.handle_webhook(raw_body, headers)
+        return result
+    except WebhookVerificationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    except WebhookPayloadError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except WebhookProcessingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/stripe")

@@ -13,7 +13,7 @@ from typing import Mapping, Optional
 from app.payments import events
 from app.payments.models import PaymentIntent
 from app.payments.provider import VerifiedWebhook
-from app.payments.providers.registry import get_provider
+from app.payments.providers.registry import get_provider, get_provider_name
 from app.payments.repo import get_repos
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ def create_checkout(
     Returns {"url": redirect_url} matching frontend expectations.
     """
     repos = get_repos()
+    provider_name = get_provider_name()
     provider = get_provider()
     now = datetime.now(timezone.utc)
 
@@ -46,7 +47,7 @@ def create_checkout(
         courseId=courseId,
         tier=tier,
         status="pending",
-        provider=provider.__class__.__name__.lower().replace("provider", "") or "stub",
+        provider=provider_name,
         providerRef=None,
         createdAt=now,
         updatedAt=now,
@@ -61,11 +62,8 @@ def create_checkout(
     else:
         result = provider.create_subscription_checkout(intent)
 
-    # Update intent with provider ref
-    repos.intents.update_intent(intent.id, {
-        "providerRef": result.provider_ref,
-        "updatedAt": datetime.now(timezone.utc),
-    })
+    # Update intent with provider ref (repo sets updatedAt internally)
+    repos.intents.update_intent(intent.id, {"providerRef": result.provider_ref})
 
     logger.info(
         "Checkout created",
@@ -74,7 +72,7 @@ def create_checkout(
             "uid": uid,
             "kind": kind,
             "scope": scope,
-            "provider": intent.provider,
+            "provider": provider_name,
             "provider_ref": result.provider_ref,
         },
     )
@@ -89,22 +87,15 @@ def handle_webhook(
     """
     Process an incoming webhook from the active payment provider.
 
-    Steps:
-    1. Verify via provider (signature + parse)
-    2. Deduplicate via events repo
-    3. Locate intent via provider_ref
-    4. Route by canonical event type
-    5. Grant/revoke entitlements as needed
+    Typed exceptions (WebhookPayloadError, WebhookVerificationError) bubble
+    up to the router for correct HTTP status mapping. Only normal outcomes
+    return JSON dicts.
     """
     repos = get_repos()
     provider = get_provider()
 
-    # 1. Verify
-    try:
-        verified: VerifiedWebhook = provider.verify_webhook(raw_body, headers)
-    except ValueError as exc:
-        logger.warning("Webhook verification failed: %s", exc)
-        return {"ok": False, "error": str(exc)}
+    # 1. Verify — typed errors bubble to router
+    verified: VerifiedWebhook = provider.verify_webhook(raw_body, headers)
 
     log_ctx = {
         "provider": verified.provider,
@@ -152,7 +143,8 @@ def handle_webhook(
         logger.info("Payment failed", extra=log_ctx)
 
     else:
-        logger.info("Unhandled event type (Phase 0 stub)", extra=log_ctx)
+        logger.info("Unhandled event type, ignoring", extra=log_ctx)
+        return {"ok": True, "duplicate": False, "ignored": True}
 
     return {"ok": True, "duplicate": False}
 
@@ -173,8 +165,9 @@ def _handle_payment_succeeded(repos, intent: PaymentIntent) -> None:
     elif intent.scope == "membership":
         entitlements.upsert_membership_entitlement(
             uid=intent.uid,
-            stripe_subscription_id=intent.providerRef or "",
             status="active",
             expires_at=None,
             source="subscription",
+            provider=intent.provider,
+            provider_subscription_id=intent.providerRef or None,
         )

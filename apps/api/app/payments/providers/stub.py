@@ -8,7 +8,7 @@ verify_webhook parses JSON directly — no signature check.
 import json
 from typing import Mapping
 
-from app.payments import events
+from app.payments.errors import WebhookPayloadError
 from app.payments.models import PaymentIntent
 from app.payments.provider import (
     PaymentProvider,
@@ -53,17 +53,15 @@ class StubProvider:
         try:
             data = json.loads(raw_body)
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError(f"Invalid webhook body: {exc}") from exc
+            raise WebhookPayloadError(f"Invalid webhook body: {exc}") from exc
 
         event_id = data.get("event_id")
         event_type = data.get("event_type")
         if not event_id or not event_type:
-            raise ValueError("Webhook body must include event_id and event_type")
+            raise WebhookPayloadError("Webhook body must include event_id and event_type")
 
-        # Validate canonical event types — accept but flag unknown ones
-        # (In Phase 1, providers should map native events to canonical types.
-        #  Accept-and-ignore prevents retry storms from providers.)
-        # The service layer will handle unrecognized types gracefully.
+        # Accept all event types — service layer handles unknown ones gracefully.
+        # This prevents provider retry storms in Phase 1.
 
         # Extract provider_ref: top-level first, then fallback to payload
         provider_ref = data.get("provider_ref")

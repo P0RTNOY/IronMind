@@ -101,12 +101,20 @@ const AdminUsers: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button
-                                        onClick={() => setSelectedUserUid(user.uid)}
-                                        className="text-[10px] font-bold uppercase bg-white text-black px-3 py-1.5 rounded hover:bg-gray-200 transition"
-                                    >
-                                        Manage
-                                    </button>
+                                    <div className="flex justify-end gap-2 text-[10px] font-bold uppercase">
+                                        <a
+                                            href={`/#/admin/users/${user.uid}/access`}
+                                            className="bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-400 transition"
+                                        >
+                                            Access Console
+                                        </a>
+                                        <button
+                                            onClick={() => setSelectedUserUid(user.uid)}
+                                            className="bg-white text-black px-3 py-1.5 rounded hover:bg-gray-200 transition border border-white"
+                                        >
+                                            Manage
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

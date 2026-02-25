@@ -7,7 +7,8 @@ from app.models import (
     LessonUpsertRequest, LessonAdmin,
     PlanUpsertRequest, PlanAdmin,
     MetricsOverview,
-    AdminUsersListResponse, AdminUserDetailResponse, AdminUserRow, Entitlement
+    AdminUsersListResponse, AdminUserDetailResponse, AdminUserRow, Entitlement,
+    MembershipAdminResponse, ActivateMembershipRequest, SetMembershipExpiryRequest
 )
 from app.deps import require_admin
 from app.repos import courses, lessons, plans, admin_audit
@@ -142,6 +143,30 @@ async def delete_lesson(lesson_id: str, admin: UserContext = Depends(require_adm
         raise HTTPException(status_code=404, detail="Lesson not found")
     admin_audit.write_audit("delete_lesson", "lesson", lesson_id, admin.uid)
 
+@router.post("/lessons/{lesson_id}/publish", response_model=LessonAdmin)
+async def publish_lesson(lesson_id: str, admin: UserContext = Depends(require_admin)):
+    try:
+        lessons.set_lesson_published(lesson_id, True)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    admin_audit.write_audit("publish_lesson", "lesson", lesson_id, admin.uid)
+    lesson = lessons.get_lesson_admin(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return lesson
+
+@router.post("/lessons/{lesson_id}/unpublish", response_model=LessonAdmin)
+async def unpublish_lesson(lesson_id: str, admin: UserContext = Depends(require_admin)):
+    try:
+        lessons.set_lesson_published(lesson_id, False)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    admin_audit.write_audit("unpublish_lesson", "lesson", lesson_id, admin.uid)
+    lesson = lessons.get_lesson_admin(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return lesson
+
 # --- Plans ---
 
 @router.get("/courses/{course_id}/plans", response_model=List[PlanAdmin])
@@ -179,6 +204,30 @@ async def delete_plan(plan_id: str, admin: UserContext = Depends(require_admin))
     except KeyError:
         raise HTTPException(status_code=404, detail="Plan not found")
     admin_audit.write_audit("delete_plan", "plan", plan_id, admin.uid)
+
+@router.post("/plans/{plan_id}/publish", response_model=PlanAdmin)
+async def publish_plan(plan_id: str, admin: UserContext = Depends(require_admin)):
+    try:
+        plans.set_plan_published(plan_id, True)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    admin_audit.write_audit("publish_plan", "plan", plan_id, admin.uid)
+    plan = plans.get_plan_admin(plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+@router.post("/plans/{plan_id}/unpublish", response_model=PlanAdmin)
+async def unpublish_plan(plan_id: str, admin: UserContext = Depends(require_admin)):
+    try:
+        plans.set_plan_published(plan_id, False)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    admin_audit.write_audit("unpublish_plan", "plan", plan_id, admin.uid)
+    plan = plans.get_plan_admin(plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
 
 # --- Users / Revoke ---
 
@@ -281,6 +330,69 @@ async def revoke_entitlement(ent_id: str, admin: UserContext = Depends(require_a
         
     admin_audit.write_audit("revoke_entitlement", "entitlement", ent_id, admin.uid)
     
+# --- Membership ---
+
+@router.post("/users/{uid}/membership/activate", response_model=MembershipAdminResponse)
+async def activate_membership(
+    uid: str, 
+    request: ActivateMembershipRequest, 
+    admin: UserContext = Depends(require_admin)
+):
+    from app.repos import entitlements
+    from datetime import datetime
+    
+    # Optional logic: could reject past dates, but relying on frontend / ops to know what they're doing
+    
+    entitlements.upsert_membership_entitlement(
+        uid=uid,
+        status="active",
+        expires_at=request.expiresAt,
+        source="manual"
+    )
+    
+    admin_audit.write_audit("activate_membership", "user", uid, admin.uid, {"expiresAt": str(request.expiresAt) if request.expiresAt else None})
+    return MembershipAdminResponse(uid=uid, status="active", expiresAt=request.expiresAt)
+
+@router.post("/users/{uid}/membership/deactivate", response_model=MembershipAdminResponse)
+async def deactivate_membership(
+    uid: str, 
+    admin: UserContext = Depends(require_admin)
+):
+    from app.repos import entitlements
+    
+    # Intentionally clearing expiry on deactivate as requested
+    entitlements.upsert_membership_entitlement(
+        uid=uid,
+        status="inactive",
+        expires_at=None,
+        source="manual"
+    )
+    
+    admin_audit.write_audit("deactivate_membership", "user", uid, admin.uid)
+    return MembershipAdminResponse(uid=uid, status="inactive", expiresAt=None)
+
+@router.post("/users/{uid}/membership/set-expiry", response_model=MembershipAdminResponse)
+async def set_membership_expiry(
+    uid: str, 
+    request: SetMembershipExpiryRequest, 
+    admin: UserContext = Depends(require_admin)
+):
+    from app.repos import entitlements
+    
+    # Read current status
+    existing = entitlements.get_membership_entitlement(uid)
+    current_status = existing["status"] if existing else "inactive"
+    
+    entitlements.upsert_membership_entitlement(
+        uid=uid,
+        status=current_status,
+        expires_at=request.expiresAt,
+        source="manual"
+    )
+    
+    admin_audit.write_audit("set_membership_expiry", "user", uid, admin.uid, {"expiresAt": str(request.expiresAt) if request.expiresAt else None})
+    return MembershipAdminResponse(uid=uid, status=current_status, expiresAt=request.expiresAt)
+
 # --- Metrics ---
 
 

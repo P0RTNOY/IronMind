@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.deps import get_current_user
 from app.models import UserContext, AccessMeResponse, AccessCheckResponse
 from app.services import access_service
+from app.repos import activity_events
 from app.repos import courses
 
 router = APIRouter()

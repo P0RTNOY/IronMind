@@ -37,6 +37,8 @@ const AdminCourses = lazy(() => import('./pages/admin/Courses'));
 const AdminLessons = lazy(() => import('./pages/admin/Lessons'));
 const AdminPlans = lazy(() => import('./pages/admin/Plans'));
 const AdminUsers = lazy(() => import('./pages/admin/Users'));
+const AdminUserAccess = lazy(() => import('./pages/admin/UserAccess'));
+const AdminActivity = lazy(() => import('./pages/admin/Activity'));
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -75,6 +77,8 @@ const App: React.FC = () => {
                 <Route path="/admin/lessons" element={<RequireAuth><AdminLayout><AdminLessons /></AdminLayout></RequireAuth>} />
                 <Route path="/admin/plans" element={<RequireAuth><AdminLayout><AdminPlans /></AdminLayout></RequireAuth>} />
                 <Route path="/admin/users" element={<RequireAuth><AdminLayout><AdminUsers /></AdminLayout></RequireAuth>} />
+                <Route path="/admin/users/:uid/access" element={<RequireAuth><AdminLayout><AdminUserAccess /></AdminLayout></RequireAuth>} />
+                <Route path="/admin/activity" element={<RequireAuth><AdminLayout><AdminActivity /></AdminLayout></RequireAuth>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

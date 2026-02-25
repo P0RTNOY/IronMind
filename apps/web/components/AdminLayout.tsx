@@ -32,6 +32,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <NavItem to="/admin/lessons" label="Lessons" />
                     <NavItem to="/admin/plans" label="Plans" />
                     <NavItem to="/admin/users" label="Users" />
+                    <NavItem to="/admin/activity" label="Activity" />
                 </nav>
 
                 <div className="p-4 border-t border-white/10">

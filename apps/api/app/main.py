@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import setup_logging
-from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo, admin_payments
+from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo, admin_payments, admin_activity
 from app.middleware.request_id import RequestIdMiddleware
 
 # Setup logging first
@@ -86,6 +86,12 @@ app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(content.router, prefix="/content", tags=["Content"])
 app.include_router(admin_vimeo.router, prefix="/admin/vimeo", tags=["Admin Vimeo"])
 app.include_router(admin_payments.router, prefix="/admin/payments", tags=["Admin Payments"])
+app.include_router(admin_activity.router, prefix="/admin", tags=["Admin Activity"])
+
+# Dev-only routers (never mounted in prod)
+if settings.ENV != "prod":
+    from app.routers import dev_seed
+    app.include_router(dev_seed.router, prefix="/admin/dev", tags=["Admin Dev"])
 
 @app.get("/")
 async def root():

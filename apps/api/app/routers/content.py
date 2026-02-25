@@ -18,6 +18,7 @@ from app.repos import plans as plans_repo
 from app.repos import lessons as lessons_repo
 from app.services import access_service
 from app.services.storage import generate_signed_download_url
+from app.repos import activity_events
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,7 @@ async def download_plan_pdf(
     url = generate_signed_download_url(pdf_path, ttl_seconds=ttl)
 
     logger.info("Plan PDF download URL generated", extra=log_ctx)
+    activity_events.write_event("content_download", uid, course_id=course_id, plan_id=plan_id)
 
     return {"url": url, "expiresIn": ttl}
 
@@ -150,5 +152,6 @@ async def get_lesson_playback(
     embed_url = f"{settings.VIMEO_EMBED_BASE_URL}/{video_id}"
 
     logger.info("Lesson playback URL generated", extra=log_ctx)
+    activity_events.write_event("content_playback", uid, course_id=course_id, lesson_id=lesson_id)
 
     return {"provider": settings.VIDEO_PROVIDER, "embedUrl": embed_url, "expiresIn": None}

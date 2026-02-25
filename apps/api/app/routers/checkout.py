@@ -5,6 +5,7 @@ from pydantic import BaseModel, model_validator
 from app.deps import get_current_user
 from app.models import UserContext
 from app.payments import service as payments_service
+from app.repos import activity_events
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,8 @@ async def create_checkout_session(
                 "course_id": request.courseId,
             }
         )
+
+        activity_events.write_event("checkout_started", user.uid, course_id=request.courseId)
 
         return CheckoutResponse(url=result["url"])
 

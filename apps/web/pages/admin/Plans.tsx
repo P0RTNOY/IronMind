@@ -66,6 +66,16 @@ const AdminPlans: React.FC = () => {
         if (status === 204) fetchPlans(selectedCourse);
     };
 
+    const togglePublish = async (planId: string, currentPublished: boolean) => {
+        const action = currentPublished ? 'unpublish' : 'publish';
+        const { status, data } = await apiFetch<PlanAdmin>(
+            `/admin/plans/${planId}/${action}`, { method: 'POST' }
+        );
+        if (status === 200 && data) {
+            setPlans(prev => prev.map(p => p.id === planId ? data : p));
+        }
+    };
+
     if (loading) return <Loading />;
 
     if (courses.length === 0) {
@@ -112,11 +122,18 @@ const AdminPlans: React.FC = () => {
                             <div className="w-10 h-10 bg-red-500/10 text-red-500 rounded flex items-center justify-center font-bold text-xs">PDF</div>
                             <div dir="rtl">
                                 <div className="font-bold">{plan.titleHe}</div>
-                                <div className="text-xs text-gray-500 truncate max-w-md">{plan.pdfPath || "NO PDF"}</div>
+                                <div className="text-xs text-gray-500">{plan.pdfPath || "NO PDF"} • {plan.published ? 'PUBLISHED' : 'DRAFT'}</div>
                             </div>
                         </div>
 
                         <div className="flex gap-2">
+                            <a href={`/#/courses/${selectedCourse}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View course as user">↗</a>
+                            <button
+                                onClick={() => togglePublish(plan.id, plan.published)}
+                                className={`text-xs font-bold uppercase px-2 ${plan.published ? 'text-yellow-500 hover:text-yellow-400' : 'text-green-500 hover:text-green-400'}`}
+                            >
+                                {plan.published ? 'Unpublish' : 'Publish'}
+                            </button>
                             <button onClick={() => { setEditingPlan(plan); setIsModalOpen(true); }} className="text-xs font-bold uppercase text-gray-400 hover:text-white px-2">Edit</button>
                             <button onClick={() => handleDelete(plan.id)} className="text-xs font-bold uppercase text-red-500 hover:text-red-400 px-2">Delete</button>
                         </div>

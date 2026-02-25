@@ -49,9 +49,30 @@ const Admin: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
-      <h1 className="text-5xl font-black uppercase italic tracking-tighter mb-12 flex items-center gap-4">
-        Command <span className="text-red-500 underline decoration-4">Center</span>
-      </h1>
+      <div className="flex items-center justify-between mb-12">
+        <h1 className="text-5xl font-black uppercase italic tracking-tighter flex items-center gap-4">
+          Command <span className="text-red-500 underline decoration-4">Center</span>
+        </h1>
+        {import.meta.env.DEV && (
+          <button
+            onClick={async () => {
+              const { data, status, error } = await apiFetch<any>('/admin/dev/seed', { method: 'POST' });
+              if (status === 200 && data) {
+                const created = data.created?.length || 0;
+                const skipped = data.skipped?.length || 0;
+                const updated = data.updated?.length || 0;
+                alert(`Seed complete: ${created} created, ${updated} updated, ${skipped} skipped`);
+                navigate('/admin/courses');
+              } else {
+                alert(`Seed failed: ${JSON.stringify(error)}`);
+              }
+            }}
+            className="bg-yellow-500 text-black px-4 py-2 rounded font-bold uppercase text-sm hover:bg-yellow-400 transition"
+          >
+            🌱 Seed Demo Data
+          </button>
+        )}
+      </div>
 
       {metrics && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-12">

@@ -66,6 +66,16 @@ const AdminLessons: React.FC = () => {
         if (status === 204) fetchLessons(selectedCourse);
     };
 
+    const togglePublish = async (lessonId: string, currentPublished: boolean) => {
+        const action = currentPublished ? 'unpublish' : 'publish';
+        const { status, data } = await apiFetch<LessonAdmin>(
+            `/admin/lessons/${lessonId}/${action}`, { method: 'POST' }
+        );
+        if (status === 200 && data) {
+            setLessons(prev => prev.map(l => l.id === lessonId ? data : l));
+        }
+    };
+
     if (loading) return <Loading />;
 
     return (
@@ -96,11 +106,18 @@ const AdminLessons: React.FC = () => {
                             <div className="font-mono text-gray-500 font-bold w-8 text-center">{lesson.orderIndex}</div>
                             <div dir="rtl">
                                 <div className="font-bold">{lesson.titleHe}</div>
-                                <div className="text-xs text-gray-500">{lesson.movementCategory} • {lesson.vimeoVideoId || "NO VIDEO"}</div>
+                                <div className="text-xs text-gray-500">{lesson.movementCategory} • {lesson.vimeoVideoId || "NO VIDEO"} • {lesson.published ? 'PUBLISHED' : 'DRAFT'}</div>
                             </div>
                         </div>
 
                         <div className="flex gap-2">
+                            <a href={`/#/lessons/${lesson.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View as user">↗</a>
+                            <button
+                                onClick={() => togglePublish(lesson.id, lesson.published)}
+                                className={`text-xs font-bold uppercase px-2 ${lesson.published ? 'text-yellow-500 hover:text-yellow-400' : 'text-green-500 hover:text-green-400'}`}
+                            >
+                                {lesson.published ? 'Unpublish' : 'Publish'}
+                            </button>
                             <button onClick={() => { setEditingLesson(lesson); setIsModalOpen(true); }} className="text-xs font-bold uppercase text-gray-400 hover:text-white px-2">Edit</button>
                             <button onClick={() => handleDelete(lesson.id)} className="text-xs font-bold uppercase text-red-500 hover:text-red-400 px-2">Delete</button>
                         </div>

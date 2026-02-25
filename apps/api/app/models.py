@@ -181,6 +181,17 @@ class AdminUserDetailResponse(BaseModel):
 class AccessCheckResponse(BaseModel):
     allowed: bool
 
+class MembershipAdminResponse(BaseModel):
+    uid: str
+    status: Literal["active", "inactive"]
+    expiresAt: Optional[datetime] = None
+
+class ActivateMembershipRequest(BaseModel):
+    expiresAt: Optional[datetime] = None
+
+class SetMembershipExpiryRequest(BaseModel):
+    expiresAt: Optional[datetime] = None
+
 # --- Access Models ---
 
 class AccessMeResponse(BaseModel):

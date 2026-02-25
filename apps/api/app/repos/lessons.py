@@ -160,3 +160,11 @@ def update_lesson_verification(lesson_id: str, verify_data: dict) -> None:
     if not ref.get().exists:
         raise KeyError("Lesson not found")
     ref.update(verify_data)
+
+def set_lesson_published(lesson_id: str, published: bool) -> None:
+    db = get_db()
+    ref = db.collection("lessons").document(lesson_id)
+    if not ref.get().exists:
+        raise KeyError("Lesson not found")
+    ref.update({"published": published, "updatedAt": datetime.now(timezone.utc)})
+

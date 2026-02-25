@@ -143,3 +143,11 @@ def delete_plan(plan_id: str) -> None:
     if not ref.get().exists:
         raise KeyError("Plan not found")
     ref.delete()
+
+def set_plan_published(plan_id: str, published: bool) -> None:
+    db = get_db()
+    ref = db.collection("plans").document(plan_id)
+    if not ref.get().exists:
+        raise KeyError("Plan not found")
+    ref.update({"published": published, "updatedAt": datetime.now(timezone.utc)})
+

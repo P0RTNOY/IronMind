@@ -75,6 +75,9 @@ class Settings(BaseSettings):
         "last_name", "card", "cc", "pan", "cvv", "exp", "address"
     ]
 
+    # Dev Seed
+    SEED_DEBUG_UID: str = ""
+
     @property
     def is_prod(self) -> bool:
         return self.ENV == "prod"

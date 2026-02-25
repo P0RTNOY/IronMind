@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
-import { CoursePublic, AccessCheckResponse } from '../types';
+import { CoursePublic, AccessMeResponse } from '../types';
 import { ErrorState } from '../components/Layout';
 
 const Library: React.FC = () => {
@@ -13,7 +13,7 @@ const Library: React.FC = () => {
         const load = async () => {
             setLoading(true);
 
-            // 1) fetch all published courses
+            // 1) Fetch all published courses
             const allCoursesRes = await apiFetch<CoursePublic[]>(`/courses`, { skipRedirect: true });
             if (!(allCoursesRes.status === 200 && allCoursesRes.data)) {
                 setError(allCoursesRes.error);
@@ -21,11 +21,34 @@ const Library: React.FC = () => {
                 return;
             }
 
-            // 2) filter by access
+            const allCourses = allCoursesRes.data;
+
+            // 2) Try /access/me optimization first
+            const accessRes = await apiFetch<AccessMeResponse>('/access/me', { skipRedirect: true });
+            if (accessRes.status === 200 && accessRes.data) {
+                const { membershipActive, entitledCourseIds } = accessRes.data;
+
+                if (membershipActive) {
+                    // Full membership — all courses accessible
+                    setCourses(allCourses);
+                    setLoading(false);
+                    return;
+                }
+
+                if (entitledCourseIds && entitledCourseIds.length >= 0) {
+                    // Filter by entitled course IDs
+                    const entitled = new Set(entitledCourseIds);
+                    setCourses(allCourses.filter(c => entitled.has(c.id)));
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 3) Fallback: N+1 access checks (only if /access/me failed)
             const checks = await Promise.all(
-                allCoursesRes.data.map(async (c) => {
-                    const accessRes = await apiFetch<AccessCheckResponse>(`/access/courses/${c.id}`, { skipRedirect: true });
-                    return { course: c, allowed: Boolean(accessRes.data?.allowed) };
+                allCourses.map(async (c) => {
+                    const checkRes = await apiFetch<{ allowed: boolean }>(`/access/courses/${c.id}`, { skipRedirect: true });
+                    return { course: c, allowed: Boolean(checkRes.data?.allowed) };
                 })
             );
 
@@ -36,7 +59,6 @@ const Library: React.FC = () => {
         load();
     }, []);
 
-    if (error) return <ErrorState status={500} message={error} />;
     if (error) return <ErrorState status={500} message={error} />;
 
     return (

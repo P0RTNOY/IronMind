@@ -35,7 +35,9 @@ def _reset_payments_state():
 
 @pytest.fixture(scope="session")
 def client():
-    return httpx.Client(base_url=API_BASE_URL, timeout=20.0)
+    from fastapi.testclient import TestClient
+    from app.main import app
+    return TestClient(app)
 
 @pytest.fixture
 def user_headers():

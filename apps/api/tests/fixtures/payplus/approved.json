@@ -1,0 +1,8 @@
+{
+    "payment_request_uid": "pp_req_ok_001",
+    "transaction": {
+        "uid": "txn_ok_001",
+        "status_code": "000",
+        "status": "approved"
+    }
+}

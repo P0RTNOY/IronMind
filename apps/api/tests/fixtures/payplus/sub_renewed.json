@@ -1,0 +1,10 @@
+{
+    "payment_request_uid": "pp_req_sub_renew_001",
+    "transaction": {
+        "uid": "txn_sub_renew_001",
+        "status_code": "000",
+        "status": "approved",
+        "type": "recurring_renewal"
+    },
+    "recurring_id": "rec_sub_001"
+}

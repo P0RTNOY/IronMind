@@ -13,6 +13,9 @@ SUB_RENEWED = "subscription.renewed"
 SUB_CANCELED = "subscription.canceled"
 SUB_PAST_DUE = "subscription.past_due"
 
+# Provider-specific: unmapped/unknown events (stored, never routed)
+PAYPLUS_UNMAPPED = "payplus.unmapped"
+
 ALL_TYPES = frozenset({
     PAYMENT_SUCCEEDED,
     PAYMENT_FAILED,

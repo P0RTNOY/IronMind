@@ -39,6 +39,7 @@ const AdminPlans = lazy(() => import('./pages/admin/Plans'));
 const AdminUsers = lazy(() => import('./pages/admin/Users'));
 const AdminUserAccess = lazy(() => import('./pages/admin/UserAccess'));
 const AdminActivity = lazy(() => import('./pages/admin/Activity'));
+const AdminPayments = lazy(() => import('./pages/admin/Payments'));
 
 const App: React.FC = () => {
   const { loading } = useAuth();
@@ -79,6 +80,7 @@ const App: React.FC = () => {
                 <Route path="/admin/users" element={<RequireAuth><AdminLayout><AdminUsers /></AdminLayout></RequireAuth>} />
                 <Route path="/admin/users/:uid/access" element={<RequireAuth><AdminLayout><AdminUserAccess /></AdminLayout></RequireAuth>} />
                 <Route path="/admin/activity" element={<RequireAuth><AdminLayout><AdminActivity /></AdminLayout></RequireAuth>} />
+                <Route path="/admin/payments" element={<RequireAuth><AdminLayout><AdminPayments /></AdminLayout></RequireAuth>} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

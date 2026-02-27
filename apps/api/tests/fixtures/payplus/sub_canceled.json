@@ -1,0 +1,8 @@
+{
+    "payment_request_uid": "pp_req_sub_cancel_001",
+    "transaction": {
+        "uid": "txn_sub_cancel_001",
+        "type": "recurring_canceled"
+    },
+    "recurring_id": "rec_sub_001"
+}

@@ -1,0 +1,9 @@
+{
+    "payment_request_uid": "pp_req_unmapped_001",
+    "transaction": {
+        "uid": "txn_unmapped_001",
+        "status_code": "777",
+        "status": "pending_review",
+        "type": "weird_new_type"
+    }
+}

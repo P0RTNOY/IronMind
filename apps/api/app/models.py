@@ -181,6 +181,14 @@ class AdminUserDetailResponse(BaseModel):
 class AccessCheckResponse(BaseModel):
     allowed: bool
 
+class PaymentIntentPublic(BaseModel):
+    id: str
+    kind: str
+    scope: str
+    courseId: Optional[str] = None
+    status: str
+    updatedAt: Optional[datetime] = None
+
 class MembershipAdminResponse(BaseModel):
     uid: str
     status: Literal["active", "inactive"]
@@ -222,3 +230,26 @@ class UploadSignResponse(BaseModel):
     uploadUrl: str
     publicUrl: str
     objectPath: str
+
+# --- Admin Replay ---
+
+class WebhookReplayRequest(BaseModel):
+    provider: str = "payplus"
+    payload: dict
+    headers: dict[str, str] = {}
+    force_log_only: bool = True
+
+class WebhookReplayResponse(BaseModel):
+    ok: bool
+    result: dict
+    provider: str
+    event_id: Optional[str] = None
+    event_type: Optional[str] = None
+    notes: List[str] = []
+
+    # Intent linking and prediction
+    intent_found: bool = False
+    intent_id: Optional[str] = None
+    intent_status: Optional[str] = None
+    provider_ref: Optional[str] = None
+    mutation_risk: Literal["safe", "may_mutate"] = "safe"

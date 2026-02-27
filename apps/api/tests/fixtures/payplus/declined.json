@@ -1,0 +1,8 @@
+{
+    "payment_request_uid": "pp_req_fail_001",
+    "transaction": {
+        "uid": "txn_fail_001",
+        "status_code": "999",
+        "status": "declined"
+    }
+}

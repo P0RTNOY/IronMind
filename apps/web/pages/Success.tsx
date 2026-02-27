@@ -8,76 +8,158 @@ interface CheckoutSessionVerification {
     paymentStatus: string;
 }
 
+interface IntentVerification {
+    id: string;
+    status: string;
+    scope: string;
+    courseId?: string;
+}
+
 const Success: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const sessionId = searchParams.get('session_id');
+    const sessionId = searchParams.get('session_id'); // From provider if present
     const [loading, setLoading] = useState(true);
     const [polling, setPolling] = useState(false);
     const [courseId, setCourseId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // 1. Recover Context
     useEffect(() => {
-        const verifyPurchase = async () => {
-            if (!sessionId) {
-                setError('No session ID found.');
+        const recoverAndVerify = async () => {
+            // Read fallback context
+            let localContext: any = null;
+            try {
+                const stored = localStorage.getItem('ironmind_checkout');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    // Only use if started less than 30 mins ago
+                    if (Date.now() - parsed.startedAt < 30 * 60 * 1000) {
+                        localContext = parsed;
+                    } else {
+                        localStorage.removeItem('ironmind_checkout');
+                    }
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+
+            // Restore basic info for UI
+            if (localContext?.courseId) {
+                setCourseId(localContext.courseId);
+            }
+
+            // If we have an explicit session ID in URL from provider, verify that directly (Stripe behavior)
+            if (sessionId) {
+                const { data, status } = await apiFetch<CheckoutSessionVerification>(`/checkout/session/${sessionId}`);
+                if (status === 200 && data) {
+                    if (data.paymentStatus === 'paid') {
+                        setCourseId(data.courseId);
+                        if (data.courseId) {
+                            setPolling(true);
+                        }
+                    } else {
+                        setError(`Payment status: ${data.paymentStatus}`);
+                    }
+                } else {
+                    setError('Failed to verify purchase.');
+                }
                 setLoading(false);
                 return;
             }
 
-            const { data, status } = await apiFetch<CheckoutSessionVerification>(`/checkout/session/${sessionId}`);
+            // Otherwise, we rely on our intentId from localStorage (PayPlus behavior)
+            if (localContext?.intentId) {
+                setPolling(true);
+                setLoading(false);
+                return;
+            }
 
-            if (status === 200 && data) {
-                if (data.paymentStatus === 'paid') {
-                    setCourseId(data.courseId);
-                    if (data.courseId) {
-                        setPolling(true);
-                    }
-                } else {
-                    setError(`Payment status: ${data.paymentStatus}`);
-                }
+            // If we have neither, we can't do much
+            if (!localContext) {
+                setError('No checkout session found. If you just completed a payment, check your library shortly.');
             } else {
-                setError('Failed to verify purchase.');
+                // We have a local context but no intent ID. Just poll the access route directly.
+                setPolling(true);
             }
             setLoading(false);
         };
 
-        verifyPurchase();
+        recoverAndVerify();
     }, [sessionId]);
 
+    // 2. Poll for Success
     useEffect(() => {
-        if (!polling || !courseId) return;
+        if (!polling) return;
 
         let pollCount = 0;
-        const maxPolls = 10; // 15 seconds total max
+        const maxPolls = 15; // 22.5 seconds max
         let timerId: NodeJS.Timeout;
 
-        const checkAccess = async () => {
+        const checkCompletion = async () => {
             pollCount++;
-            const { data, status } = await apiFetch<{ allowed: boolean }>(`/access/courses/${courseId}`);
+            let localContext: any = null;
+            try {
+                const stored = localStorage.getItem('ironmind_checkout');
+                if (stored) localContext = JSON.parse(stored);
+            } catch (e) { }
 
-            if (status === 401) {
-                // User became unauthenticated (or never was), abort polling
-                setPolling(false);
-                setError("Your session expired. Please log in to view your content.");
-                return;
+            // A. If we know the intent ID, poll the intent status first
+            if (localContext?.intentId) {
+                const { data, status } = await apiFetch<IntentVerification>(`/payments/intents/${localContext.intentId}`);
+                if (status === 200 && data) {
+                    if (data.status === 'failed') {
+                        setPolling(false);
+                        setError('Your payment failed or was declined.');
+                        localStorage.removeItem('ironmind_checkout');
+                        return;
+                    }
+                    if (data.status === 'succeeded') {
+                        // Immediately clear the storage, drop directly to checking access
+                        localStorage.removeItem('ironmind_checkout');
+                        // No return here, let it fall through to step B to verify access
+                    } else {
+                        return scheduleNext(); // Still pending
+                    }
+                } else if (status === 404) {
+                    // Unexpected
+                    return scheduleNext();
+                } else if (status === 401) {
+                    setPolling(false);
+                    setError("Your session expired. Please log in to view your content.");
+                    return;
+                }
             }
 
-            if (status === 200 && data?.allowed) {
-                setPolling(false);
-                return; // Access granted!
+            // B. Check final access (Content unlocked)
+            if (courseId) {
+                const { data, status } = await apiFetch<{ allowed: boolean }>(`/access/courses/${courseId}`);
+                if (status === 200 && data?.allowed) {
+                    setPolling(false);
+                    localStorage.removeItem('ironmind_checkout');
+                    return; // Access granted!
+                }
+            } else if (localContext?.scope === 'membership') {
+                const { data, status } = await apiFetch<any>(`/access/me`);
+                if (status === 200 && data?.tier !== 'free') {
+                    setPolling(false);
+                    localStorage.removeItem('ironmind_checkout');
+                    return;
+                }
             }
 
+            scheduleNext();
+        };
+
+        const scheduleNext = () => {
             if (pollCount >= maxPolls) {
                 setPolling(false);
                 // We don't set an error; we just drop them into the "Still Processing" state
                 return;
             }
+            timerId = setTimeout(checkCompletion, 1500);
+        }
 
-            // Otherwise, keep polling
-            timerId = setTimeout(checkAccess, 1500);
-        };
-
-        checkAccess();
+        checkCompletion();
 
         return () => clearTimeout(timerId);
     }, [polling, courseId]);

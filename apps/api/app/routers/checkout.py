@@ -23,6 +23,7 @@ class CheckoutRequest(BaseModel):
 
 class CheckoutResponse(BaseModel):
     url: str
+    intentId: Optional[str] = None
 
 @router.post("/checkout/session", response_model=CheckoutResponse)
 async def create_checkout_session(
@@ -55,7 +56,7 @@ async def create_checkout_session(
 
         activity_events.write_event("checkout_started", user.uid, course_id=request.courseId)
 
-        return CheckoutResponse(url=result["url"])
+        return CheckoutResponse(url=result["url"], intentId=result.get("intentId"))
 
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))

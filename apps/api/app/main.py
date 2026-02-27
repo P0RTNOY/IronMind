@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.logging_config import setup_logging
-from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo, admin_payments, admin_activity
+from app.routers import health, user, public, auth, checkout, webhooks, admin, access, upload, content, admin_vimeo, admin_payments, admin_activity, payments, admin_webhook_replay
 from app.middleware.request_id import RequestIdMiddleware
 
 # Setup logging first
@@ -82,10 +82,12 @@ app.include_router(access.router, prefix="/access", tags=["Access"])
 app.include_router(checkout.router, tags=["Checkout"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
+app.include_router(payments.router, prefix="/payments", tags=["Payments"])
 app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(content.router, prefix="/content", tags=["Content"])
 app.include_router(admin_vimeo.router, prefix="/admin/vimeo", tags=["Admin Vimeo"])
 app.include_router(admin_payments.router, prefix="/admin/payments", tags=["Admin Payments"])
+app.include_router(admin_webhook_replay.router, prefix="/admin/payments", tags=["Admin Payments"])
 app.include_router(admin_activity.router, prefix="/admin", tags=["Admin Activity"])
 
 # Dev-only routers (never mounted in prod)

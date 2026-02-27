@@ -154,6 +154,16 @@ class PayPlusProvider:
             "raw_status": transaction.get("status", data.get("status", "")),
         }
 
+        # Structured hint for unmapped events (no PII — status fields only)
+        if event_type == events.PAYPLUS_UNMAPPED:
+            payload["unmapped_hint"] = {
+                "raw_status_code": payload["raw_status_code"],
+                "raw_status": payload["raw_status"],
+                "raw_transaction_type": str(
+                    transaction.get("type", data.get("type", ""))
+                ),
+            }
+
         # Include provider_subscription_id if available (for recurring)
         recurring_id = (
             data.get("recurring_id")
@@ -248,6 +258,12 @@ class PayPlusProvider:
         status = str(data.get("status", "")).lower()
         transaction_type = str(data.get("type", "")).lower()
 
+        # 0. Fast-fail completely unknown transaction types
+        # This prevents aggressive fallback logic below from miscategorizing new lifecycle events.
+        known_types = ("", "charge", "recurring_renewal", "recurring_canceled", "recurring_expired")
+        if transaction_type not in known_types:
+            return events.PAYPLUS_UNMAPPED
+
         # 1. Recurring lifecycle (secondary until confirmed from sandbox)
         if transaction_type in ("recurring_renewal",) and status in ("approved", "success"):
             return events.SUB_RENEWED
@@ -262,5 +278,5 @@ class PayPlusProvider:
         if status in ("declined", "failed", "error") or (status_code and status_code != "000"):
             return events.PAYMENT_FAILED
 
-        # 3. Unknown → service returns {"ignored": true}
-        return f"payplus.unknown.{status_code or status or 'none'}"
+        # 3. Unknown → stored + flagged, never mutates state
+        return events.PAYPLUS_UNMAPPED

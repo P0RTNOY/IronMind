@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Cancel: React.FC = () => {
+    const [courseId, setCourseId] = useState<string | null>(null);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('ironmind_checkout');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed.courseId) {
+                    setCourseId(parsed.courseId);
+                }
+            }
+        } catch (e) {
+            // ignore
+        } finally {
+            // Always clean up on cancel so we don't accidentally use it later
+            localStorage.removeItem('ironmind_checkout');
+        }
+    }, []);
+
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
             <div className="bg-[#111] border border-white/10 p-8 rounded-2xl shadow-2xl max-w-md w-full">
@@ -14,12 +33,32 @@ const Cancel: React.FC = () => {
                 <p className="text-gray-400 text-sm mb-8">
                     The transaction was not completed. No charges were made.
                 </p>
-                <Link
-                    to="/"
-                    className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
-                >
-                    Return to Courses
-                </Link>
+
+                <div className="space-y-3">
+                    {courseId ? (
+                        <>
+                            <Link
+                                to={`/courses/${courseId}`}
+                                className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
+                            >
+                                Try Again
+                            </Link>
+                            <Link
+                                to="/"
+                                className="block w-full text-gray-400 py-3 rounded-xl font-bold uppercase tracking-widest hover:text-white transition-colors"
+                            >
+                                Return to Courses
+                            </Link>
+                        </>
+                    ) : (
+                        <Link
+                            to="/"
+                            className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
+                        >
+                            Return to Courses
+                        </Link>
+                    )}
+                </div>
             </div>
         </div>
     );

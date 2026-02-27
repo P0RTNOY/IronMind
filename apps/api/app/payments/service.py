@@ -8,7 +8,7 @@ Uses the provider interface + repo factory — no direct Stripe calls.
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from app.payments import events
 from app.config import settings
@@ -19,6 +19,24 @@ from app.payments.repo import get_repos
 from app.payments.redact import redact_payload
 
 logger = logging.getLogger(__name__)
+
+
+def _pick_first(parsed: dict, paths: Sequence[Sequence[str]]) -> Optional[str]:
+    """
+    Helper to extract the first matching path from a dictionary.
+    Handles nested paths like ["transaction", "uid"].
+    """
+    for path in paths:
+        curr = parsed
+        for key in path:
+            if isinstance(curr, dict) and key in curr:
+                curr = curr[key]
+            else:
+                curr = None
+                break
+        if curr is not None and isinstance(curr, str) and curr.strip():
+            return curr.strip()
+    return None
 
 
 def _generate_intent_id() -> str:
@@ -79,7 +97,7 @@ def create_checkout(
         },
     )
 
-    return {"url": result.redirect_url}
+    return {"url": result.redirect_url, "intentId": intent.id}
 
 
 def handle_webhook(
@@ -106,10 +124,13 @@ def handle_webhook(
     }
 
     # 1.5 Optionally Capture Raw Redacted Webhook
+    is_unmapped = verified.event_type == events.PAYPLUS_UNMAPPED
     event_doc = {
         "provider": verified.provider,
         "type": verified.event_type,
         "payload": verified.payload,
+        "unmapped": is_unmapped,
+        "unmappedHint": verified.payload.get("unmapped_hint") if is_unmapped else None,
     }
     
     if settings.PAYPLUS_CAPTURE_WEBHOOK_PAYLOADS:
@@ -122,6 +143,36 @@ def handle_webhook(
             event_doc["payload_keys"] = list(raw_dict.keys())[:100]
             if isinstance(raw_dict.get("transaction"), dict):
                 event_doc["transaction_keys"] = list(raw_dict["transaction"].keys())[:100]
+
+            if verified.provider == "payplus":
+                event_doc["providerRefCandidate"] = _pick_first(raw_dict, [
+                    ["payment_request_uid"],
+                    ["page_request_uid"],
+                    ["transaction", "payment_request_uid"],
+                    ["transaction", "page_request_uid"],
+                    ["data", "payment_request_uid"],
+                    ["data", "page_request_uid"],
+                ])
+                event_doc["transactionUidCandidate"] = _pick_first(raw_dict, [
+                    ["transaction", "uid"],
+                    ["transaction_uid"],
+                    ["transaction", "transaction_uid"],
+                    ["data", "transaction", "uid"],
+                    ["data", "transaction_uid"],
+                ])
+                event_doc["providerSubscriptionIdCandidate"] = _pick_first(raw_dict, [
+                    ["recurring_id"],
+                    ["token_uid"],
+                    ["token"],
+                    ["card_token"],
+                    ["transaction", "recurring_id"],
+                    ["transaction", "token_uid"],
+                    ["transaction", "token"],
+                    ["data", "recurring_id"],
+                    ["data", "token_uid"],
+                ])
+                event_doc["verifyMode"] = getattr(settings, "PAYPLUS_WEBHOOK_VERIFY_MODE", "log_only")
+
         except Exception as e:
             logger.warning(f"Failed to parse or redact raw webhook body: {e}")
             event_doc["payload_raw_redacted"] = {"_error": "invalid_json_or_redact_failure"}
@@ -135,6 +186,14 @@ def handle_webhook(
     if not created:
         logger.info("Duplicate webhook event, skipping", extra=log_ctx)
         return {"ok": True, "duplicate": True}
+
+    # 2.5 Unmapped events — store but never mutate state
+    if is_unmapped:
+        logger.warning(
+            "Unmapped PayPlus event stored",
+            extra={**log_ctx, "unmapped_hint": verified.payload.get("unmapped_hint")},
+        )
+        return {"ok": True, "duplicate": False, "ignored": True, "unmapped": True}
 
     # 3. Find intent by provider_ref
     provider_ref = verified.payload.get("provider_ref")
@@ -239,6 +298,12 @@ def _handle_payment_succeeded(repos, intent: PaymentIntent, verified: VerifiedWe
 def _handle_sub_renewed(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
     """Subscription renewed — upsert subscription + keep entitlement active."""
     provider_sub_id = verified.payload.get("provider_subscription_id")
+    if not provider_sub_id:
+        logger.warning(
+            "Missing provider_subscription_id in %s event",
+            verified.event_type,
+            extra={"uid": intent.uid, "intent_id": intent.id},
+        )
 
     from app.payments.models import Subscription
     sub_id = _build_subscription_id(
@@ -266,6 +331,12 @@ def _handle_sub_renewed(repos, intent: PaymentIntent, verified: VerifiedWebhook)
 def _handle_sub_past_due(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
     """Subscription past due — update subscription, keep entitlement active for MVP."""
     provider_sub_id = verified.payload.get("provider_subscription_id")
+    if not provider_sub_id:
+        logger.warning(
+            "Missing provider_subscription_id in %s event",
+            verified.event_type,
+            extra={"uid": intent.uid, "intent_id": intent.id},
+        )
 
     from app.payments.models import Subscription
     sub_id = _build_subscription_id(
@@ -297,6 +368,12 @@ def _handle_sub_past_due(repos, intent: PaymentIntent, verified: VerifiedWebhook
 def _handle_sub_canceled(repos, intent: PaymentIntent, verified: VerifiedWebhook) -> None:
     """Subscription canceled — update subscription, revoke entitlement."""
     provider_sub_id = verified.payload.get("provider_subscription_id")
+    if not provider_sub_id:
+        logger.warning(
+            "Missing provider_subscription_id in %s event",
+            verified.event_type,
+            extra={"uid": intent.uid, "intent_id": intent.id},
+        )
 
     from app.payments.models import Subscription
     sub_id = _build_subscription_id(

@@ -118,7 +118,7 @@ const CourseDetail: React.FC = () => {
               <button
                 onClick={async () => {
                   try {
-                    const res = await apiFetch<{ url: string }>('/checkout/session', {
+                    const res = await apiFetch<{ url: string, intentId?: string }>('/checkout/session', {
                       method: 'POST',
                       body: JSON.stringify({
                         type: course.type,
@@ -127,6 +127,13 @@ const CourseDetail: React.FC = () => {
                     });
 
                     if (res.status === 200 && res.data?.url) {
+                      // Save context for deterministic success/cancel routing
+                      localStorage.setItem('ironmind_checkout', JSON.stringify({
+                        courseId: course.id,
+                        scope: course.type === 'one_time' ? 'course' : 'membership',
+                        intentId: res.data.intentId || null,
+                        startedAt: Date.now()
+                      }));
                       window.location.href = res.data.url;
                     } else {
                       toast.error('Failed to initiate checkout: ' + (res.error?.detail || 'Unknown error'));

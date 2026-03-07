@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { CoursePublic, AccessMeResponse } from '../types';
 import { ErrorState } from '../components/Layout';
+import { routes } from '../lib/routes';
 
 const Library: React.FC = () => {
     const [loading, setLoading] = useState(true);
@@ -65,7 +66,7 @@ const Library: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4 py-12">
             <div className="mb-8 flex items-center justify-between">
                 <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">My Library</h1>
-                <Link to="/" className="text-sm border border-white/20 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:border-white transition flex items-center gap-2">
+                <Link to={routes.home()} className="text-sm border border-white/20 px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:border-white transition flex items-center gap-2">
                     Explore Protocols
                 </Link>
             </div>
@@ -83,7 +84,7 @@ const Library: React.FC = () => {
                         עדיין אין לך קורסים פתוחים. כנס לעמוד הראשי ורכוש גישה לפרוטוקול.
                     </p>
                     <Link
-                        to="/"
+                        to={routes.home()}
                         className="inline-block mt-6 bg-white text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition"
                     >
                         Browse Courses
@@ -94,7 +95,7 @@ const Library: React.FC = () => {
                     {courses.map(c => (
                         <Link
                             key={c.id}
-                            to={`/courses/${c.id}`}
+                            to={routes.course(c.id)}
                             className="bg-[#111] p-6 rounded-xl border border-white/5 hover:border-red-500/30 transition flex justify-between items-center group"
                         >
                             <span className="font-bold text-lg group-hover:text-red-500 transition" dir="rtl">{c.titleHe}</span>

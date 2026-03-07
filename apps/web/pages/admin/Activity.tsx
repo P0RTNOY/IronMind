@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { Loading } from '../../components/Layout';
+import { hrefs } from '../../lib/routes';
 
 interface ActivityEvent {
     id: string;
@@ -81,10 +82,10 @@ const AdminActivity: React.FC = () => {
                                     <td className="px-4 py-3 font-mono text-xs text-gray-400">{e.uid}</td>
                                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                                         {e.courseId && (
-                                            <a href={`/#/courses/${e.courseId}`} className="text-blue-400 hover:text-blue-300 mr-2">{e.courseId}</a>
+                                            <a href={hrefs.course(e.courseId)} className="text-blue-400 hover:text-blue-300 mr-2">{e.courseId}</a>
                                         )}
                                         {e.lessonId && (
-                                            <a href={`/#/lessons/${e.lessonId}`} className="text-purple-400 hover:text-purple-300 mr-2">{e.lessonId}</a>
+                                            <a href={hrefs.lesson(e.lessonId)} className="text-purple-400 hover:text-purple-300 mr-2">{e.lessonId}</a>
                                         )}
                                         {e.planId && (
                                             <span className="text-green-400">{e.planId}</span>

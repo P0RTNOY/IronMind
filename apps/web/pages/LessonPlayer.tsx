@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api';
 import { LessonPublic } from '../types';
 import { ErrorState } from '../components/Layout';
 import { toast } from '../components/toast';
+import { routes } from '../lib/routes';
 
 type PlaybackResponse = { provider: string; embedUrl: string; expiresIn: null };
 
@@ -24,8 +25,9 @@ const LessonPlayer: React.FC = () => {
 
             // 1) Public lesson metadata
             const lessonRes = await apiFetch<LessonPublic>(`/lessons/${id}`, { skipRedirect: true });
+
             if (lessonRes.status === 404) {
-                setStatus('notfound');
+                navigate(`${routes.notFound()}?reason=lesson_missing`, { replace: true });
                 return;
             }
             if (!(lessonRes.status === 200 && lessonRes.data)) {
@@ -36,7 +38,7 @@ const LessonPlayer: React.FC = () => {
             }
             setLesson(lessonRes.data);
 
-            // 2) Gated playback
+            // 2) Gated playback (Crucial: use skipRedirect to handle auth gating locally without losing context)
             const playbackRes = await apiFetch<PlaybackResponse>(`/content/lessons/${id}/playback`, { skipRedirect: true });
 
             if (playbackRes.status === 200 && playbackRes.data?.embedUrl) {
@@ -46,19 +48,12 @@ const LessonPlayer: React.FC = () => {
             }
 
             if (playbackRes.status === 401) {
-                // In dev you may have /auth-debug, in prod /login
-                const target = import.meta.env.DEV ? '/auth-debug' : '/login';
-                navigate(target, { replace: true });
+                setStatus('locked'); // Trigger local CTA logic instead of app-wide redirect
                 return;
             }
 
             if (playbackRes.status === 403) {
                 setStatus('locked');
-                return;
-            }
-
-            if (playbackRes.status === 404) {
-                setStatus('notfound');
                 return;
             }
 
@@ -92,10 +87,12 @@ const LessonPlayer: React.FC = () => {
     if (!lesson) return <ErrorState status={404} />;
 
     if (status === 'locked') {
+        // Evaluate if locking is due to missing auth (401 context) 
+        // Note: The app architecture handles authentication via useAuth. A strict API 401 fetch means missing session token.
         return (
             <div className="max-w-5xl mx-auto px-4 py-12">
                 <div className="mb-8">
-                    <Link to={`/courses/${lesson.courseId}`} className="text-sm text-gray-500 hover:text-white transition flex items-center gap-2">
+                    <Link to={routes.course(lesson.courseId)} className="text-sm text-gray-500 hover:text-white transition flex items-center gap-2">
                         <span>←</span> Back to Course
                     </Link>
                 </div>
@@ -103,14 +100,22 @@ const LessonPlayer: React.FC = () => {
                 <div className="bg-[#111] border border-red-500/20 p-12 rounded-3xl text-center">
                     <h1 className="text-2xl font-black text-red-500 uppercase italic tracking-widest mb-4">Access Blocked</h1>
                     <p className="text-gray-500 mb-6" dir="rtl">
-                        אין לך הרשאה לשיעור הזה. צריך לרכוש גישה לפרוטוקול כדי לצפות.
+                        אין לך הרשאה לשיעור הזה. צריך לרכוש גישה לפרוטוקול או פשוט להתחבר למשתמש.
                     </p>
-                    <Link
-                        to={`/courses/${lesson.courseId}`}
-                        className="inline-block bg-white text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition"
-                    >
-                        Purchase Access
-                    </Link>
+                    <div className="flex gap-4 justify-center">
+                        <Link
+                            to={routes.login(window.location.hash.slice(1))}
+                            className="inline-block border border-white/20 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-white/10 transition"
+                        >
+                            Login
+                        </Link>
+                        <Link
+                            to={routes.course(lesson.courseId)}
+                            className="inline-block bg-white text-black px-8 py-3 rounded-xl font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition"
+                        >
+                            Purchase Access
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
@@ -120,7 +125,7 @@ const LessonPlayer: React.FC = () => {
     return (
         <div className="max-w-6xl mx-auto px-4 py-12">
             <div className="mb-8 flex justify-between items-center">
-                <Link to={`/courses/${lesson.courseId}`} className="text-sm text-gray-500 hover:text-white transition flex items-center gap-2">
+                <Link to={routes.course(lesson.courseId)} className="text-sm text-gray-500 hover:text-white transition flex items-center gap-2">
                     <span>←</span> Back to Course
                 </Link>
                 <span className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Secure Playback</span>

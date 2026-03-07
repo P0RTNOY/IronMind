@@ -4,6 +4,7 @@ import { Navbar, Loading } from './components/Layout';
 import AdminLayout from './components/AdminLayout';
 import { ToastProvider } from './components/ToastProvider';
 import { useAuth } from './hooks/useAuth';
+import { routes } from './lib/routes';
 
 // Auth Guard Component
 const RequireAuth: React.FC<{ children: JSX.Element }> = ({ children }) => {
@@ -12,8 +13,10 @@ const RequireAuth: React.FC<{ children: JSX.Element }> = ({ children }) => {
   if (loading) return <Loading />;
 
   if (!isAuthorized) {
-    const target = import.meta.env.DEV ? "/auth-debug" : "/login";
-    return <Navigate to={target} replace />;
+    const currentHash = window.location.hash;
+    const target = import.meta.env.DEV ? routes.devAuth(currentHash) : routes.login(currentHash);
+
+    return <Navigate to={target.replace('#', '')} replace />;
   }
 
   return children;
@@ -30,6 +33,16 @@ const Access = lazy(() => import('./pages/Access'));
 const DevAuth = lazy(() => import('./pages/DevAuth'));
 const LessonPlayer = lazy(() => import('./pages/LessonPlayer'));
 const Library = lazy(() => import('./pages/Library'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const DevTools = lazy(() => import('./pages/DevTools'));
+
+import { useParams } from 'react-router-dom';
+
+const ProgramRedirect = () => {
+  const { id } = useParams();
+  if (!id) return <Navigate to="/" replace />;
+  return <Navigate to={`/courses/${id}`} replace />;
+};
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('./pages/Admin'));
@@ -41,6 +54,8 @@ const AdminUserAccess = lazy(() => import('./pages/admin/UserAccess'));
 const AdminActivity = lazy(() => import('./pages/admin/Activity'));
 const AdminPayments = lazy(() => import('./pages/admin/Payments'));
 
+import { DebugBanner } from './components/DebugBanner';
+
 const App: React.FC = () => {
   const { loading } = useAuth();
 
@@ -50,6 +65,7 @@ const App: React.FC = () => {
     <ToastProvider>
       <Router>
         <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col font-sans selection:bg-red-500 selection:text-white">
+          <DebugBanner />
           <Navbar />
           <main className="flex-grow">
             <Suspense fallback={<Loading />}>
@@ -57,14 +73,19 @@ const App: React.FC = () => {
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
-                {/* Legacy /program preserved for now, mapping new /courses/:id */}
-                <Route path="/program/:id" element={<CourseDetail />} />
+
+                {/* Canonical route and legacy redirect mapping */}
                 <Route path="/courses/:id" element={<CourseDetail />} />
+                <Route path="/program/:id" element={<ProgramRedirect />} />
+
                 <Route path="/lessons/:id" element={<LessonPlayer />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/auth-debug" element={<DevAuth />} />
                 <Route path="/success" element={<Success />} />
                 <Route path="/cancel" element={<Cancel />} />
+
+                {/* DEV Override Panels */}
+                {import.meta.env.DEV && <Route path="/dev-tools" element={<DevTools />} />}
 
                 {/* Protected Routes */}
                 <Route path="/me" element={<RequireAuth><Me /></RequireAuth>} />
@@ -83,7 +104,8 @@ const App: React.FC = () => {
                 <Route path="/admin/payments" element={<RequireAuth><AdminLayout><AdminPayments /></AdminLayout></RequireAuth>} />
 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/not-found" element={<NotFound />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </main>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { routes } from '../lib/routes';
 
 const Cancel: React.FC = () => {
     const [courseId, setCourseId] = useState<string | null>(null);
@@ -38,13 +39,13 @@ const Cancel: React.FC = () => {
                     {courseId ? (
                         <>
                             <Link
-                                to={`/courses/${courseId}`}
+                                to={routes.course(courseId)}
                                 className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
                             >
                                 Try Again
                             </Link>
                             <Link
-                                to="/"
+                                to={routes.home()}
                                 className="block w-full text-gray-400 py-3 rounded-xl font-bold uppercase tracking-widest hover:text-white transition-colors"
                             >
                                 Return to Courses
@@ -52,7 +53,7 @@ const Cancel: React.FC = () => {
                         </>
                     ) : (
                         <Link
-                            to="/"
+                            to={routes.home()}
                             className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
                         >
                             Return to Courses

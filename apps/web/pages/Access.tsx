@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { AccessMeResponse, AccessCheckResponse } from '../types';
 import { Loading, ErrorState } from '../components/Layout';
+import { routes } from '../lib/routes';
 
 const Access: React.FC = () => {
   const [access, setAccess] = useState<AccessMeResponse | null>(null);
@@ -78,7 +79,7 @@ const Access: React.FC = () => {
         ) : (
           <div className="flex flex-wrap gap-3">
             {access.entitledCourseIds.map(id => (
-              <Link key={id} to={`/courses/${id}`} className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg font-mono text-xs font-bold hover:bg-red-500/20 transition">
+              <Link key={id} to={routes.course(id)} className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg font-mono text-xs font-bold hover:bg-red-500/20 transition">
                 {id}
               </Link>
             ))}
@@ -113,7 +114,7 @@ const Access: React.FC = () => {
             </p>
             <p className="text-gray-500 text-sm mt-1">Course: <code className="text-gray-400">{checkResult.courseId}</code></p>
             {checkResult.allowed && (
-              <Link to={`/courses/${checkResult.courseId}`} className="text-blue-400 text-sm mt-2 inline-block hover:text-blue-300 transition">
+              <Link to={routes.course(checkResult.courseId)} className="text-blue-400 text-sm mt-2 inline-block hover:text-blue-300 transition">
                 → View Course
               </Link>
             )}

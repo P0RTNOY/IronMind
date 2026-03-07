@@ -5,6 +5,7 @@ import { SearchResult } from '../types';
 import { Loading } from '../components/Layout';
 import { toast } from '../components/toast';
 import { Link } from 'react-router-dom';
+import { routes } from '../lib/routes';
 
 const Search: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -71,7 +72,7 @@ const Search: React.FC = () => {
                 </h3>
                 <div className="grid gap-4">
                   {results.courses.map(c => (
-                    <Link key={c.id} to={`/courses/${c.id}`} className="bg-[#111] p-6 rounded-xl border border-white/5 hover:border-red-500/30 transition flex justify-between items-center group">
+                    <Link key={c.id} to={routes.course(c.id)} className="bg-[#111] p-6 rounded-xl border border-white/5 hover:border-red-500/30 transition flex justify-between items-center group">
                       <span className="font-bold text-lg group-hover:text-red-500 transition" dir="rtl">{c.titleHe}</span>
                       <span className="text-gray-600">→</span>
                     </Link>
@@ -91,7 +92,7 @@ const Search: React.FC = () => {
                   {results.lessons.map(l => (
                     <Link
                       key={l.id}
-                      to={`/lessons/${l.id}`}
+                      to={routes.lesson(l.id)}
                       className="bg-[#111] p-6 rounded-xl border border-white/5 hover:border-red-500/30 transition flex flex-col gap-1 group"
                     >
                       <div className="flex justify-between items-start">

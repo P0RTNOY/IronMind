@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import { routes } from '../lib/routes';
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Extract returnTo from query params
+    const returnTo = new URLSearchParams(location.search).get('returnTo');
+
     const [email, setEmail] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -75,7 +81,7 @@ const Login: React.FC = () => {
                     <div className="mt-8 pt-8 border-t border-white/5">
                         <p className="text-gray-600 text-[10px] uppercase tracking-widest mb-4">Development Access</p>
                         <button
-                            onClick={() => navigate('/auth-debug')}
+                            onClick={() => navigate(routes.devAuth(returnTo || undefined))}
                             className="text-gray-500 hover:text-white text-xs underline"
                         >
                             Use Dev Auth (Mock User)

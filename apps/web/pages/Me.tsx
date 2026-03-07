@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { AccessMeResponse } from '../types';
 import { Loading, ErrorState } from '../components/Layout';
+import { routes } from '../lib/routes';
 
 const Me: React.FC = () => {
   const [access, setAccess] = useState<AccessMeResponse | null>(null);
@@ -73,7 +74,7 @@ const Me: React.FC = () => {
                 access.entitledCourseIds.map(id => (
                   <Link
                     key={id}
-                    to={`/courses/${id}`}
+                    to={routes.course(id)}
                     className="text-xs font-mono text-white bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition"
                   >
                     {id.length > 15 ? `${id.slice(0, 15)}...` : id}
@@ -89,13 +90,13 @@ const Me: React.FC = () => {
         {/* CTA Buttons */}
         <div className="mt-10 flex gap-4">
           <Link
-            to="/library"
+            to={routes.library()}
             className="bg-white text-black px-6 py-3 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-red-500 hover:text-white transition"
           >
             Go to Library
           </Link>
           <Link
-            to="/"
+            to={routes.home()}
             className="border border-white/20 px-6 py-3 rounded-xl font-black uppercase tracking-widest text-sm text-gray-400 hover:text-white hover:border-white transition"
           >
             Browse Courses

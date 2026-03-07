@@ -2,21 +2,16 @@ import React, { useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Loading } from './Layout';
+import AdminRequired from '../pages/AdminRequired';
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { logout, isAdmin, loading } = useAuth();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (!loading && !isAdmin) {
-            navigate('/');
-        }
-    }, [loading, isAdmin, navigate]);
-
     if (loading) return <Loading />;
 
-    // Double check to prevent flash of content
-    if (!isAdmin) return null;
+    // Require specific admin clearances visually via generic boundary 
+    if (!isAdmin) return <AdminRequired />;
 
     return (
         <div className="min-h-screen bg-black text-white flex">

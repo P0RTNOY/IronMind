@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { LessonAdmin, CourseAdmin } from '../../types';
 import { Loading, ErrorState } from '../../components/Layout';
+import { hrefs } from '../../lib/routes';
 
 const AdminLessons: React.FC = () => {
     const [lessons, setLessons] = useState<LessonAdmin[]>([]);
@@ -111,7 +112,7 @@ const AdminLessons: React.FC = () => {
                         </div>
 
                         <div className="flex gap-2">
-                            <a href={`/#/lessons/${lesson.id}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View as user">↗</a>
+                            <a href={hrefs.lesson(lesson.id)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View as user">↗</a>
                             <button
                                 onClick={() => togglePublish(lesson.id, lesson.published)}
                                 className={`text-xs font-bold uppercase px-2 ${lesson.published ? 'text-yellow-500 hover:text-yellow-400' : 'text-green-500 hover:text-green-400'}`}
@@ -176,7 +177,7 @@ const LessonModal: React.FC<{
         setVerifying(true);
         setVerifyError(null);
         try {
-            const { data, error, status } = await apiFetch(`/admin/vimeo/lessons/${lesson.id}/verify`, {
+            const { data, error, status } = await apiFetch<any>(`/admin/vimeo/lessons/${lesson.id}/verify`, {
                 method: 'POST'
             });
             if (error) {

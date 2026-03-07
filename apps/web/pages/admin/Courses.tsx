@@ -3,6 +3,7 @@ import { apiFetch } from '../../lib/api';
 import { CourseAdmin } from '../../types';
 import { Loading, ErrorState } from '../../components/Layout';
 import { useUpload } from '../../hooks/useUpload';
+import { hrefs } from '../../lib/routes';
 
 const AdminCourses: React.FC = () => {
     const [courses, setCourses] = useState<CourseAdmin[]>([]);
@@ -94,7 +95,7 @@ const AdminCourses: React.FC = () => {
                         </div>
 
                         <div className="flex gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
-                            <a href={`/#/courses/${course.id}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1 text-xs font-bold uppercase rounded border border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white transition" title="View as user">↗ View</a>
+                            <a href={hrefs.course(course.id)} target="_blank" rel="noopener noreferrer" className="px-3 py-1 text-xs font-bold uppercase rounded border border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white transition" title="View as user">↗ View</a>
                             <button
                                 onClick={() => togglePublish(course.id, course.published)}
                                 className={`px-3 py-1 text-xs font-bold uppercase rounded border ${course.published ? 'text-yellow-500 border-yellow-500/50' : 'text-green-500 border-green-500/50'}`}

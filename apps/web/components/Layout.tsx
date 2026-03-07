@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { routes } from '../lib/routes';
 
 export const Navbar: React.FC = () => {
   const { isAuthorized, isAdmin, logout } = useAuth();
@@ -28,6 +29,9 @@ export const Navbar: React.FC = () => {
             )}
             {isAdmin && (
               <Link to="/admin" className={isActive('/admin') ? 'text-red-500' : 'text-red-400 hover:text-red-300 transition'}>Admin</Link>
+            )}
+            {import.meta.env.DEV && (
+              <Link to={routes.devTools()} className={isActive('/dev-tools') ? 'text-red-500 font-bold' : 'text-gray-500 hover:text-white transition italic'}>Dev Tools</Link>
             )}
           </div>
         </div>

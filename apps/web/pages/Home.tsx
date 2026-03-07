@@ -4,11 +4,12 @@ import { apiFetch } from '../lib/api';
 import { CoursePublic } from '../types';
 import { Loading, ErrorState } from '../components/Layout';
 import { Link } from 'react-router-dom';
+import { routes } from '../lib/routes';
 
 const Home: React.FC = () => {
   const [courses, setCourses] = useState<CoursePublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<{status: number, data: any} | null>(null);
+  const [error, setError] = useState<{ status: number, data: any } | null>(null);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -40,14 +41,14 @@ const Home: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {courses.map((course) => (
-            <Link 
-              key={course.id} 
-              to={`/courses/${course.id}`}
+            <Link
+              key={course.id}
+              to={routes.course(course.id)}
               className="group relative bg-[#111] border border-white/5 rounded-2xl overflow-hidden hover:border-red-500/50 transition-all duration-500 flex flex-col"
             >
               <div className="aspect-[16/9] w-full bg-gray-900 relative">
-                <img 
-                  src={course.coverImageUrl || `https://picsum.photos/seed/${course.id}/600/400`} 
+                <img
+                  src={course.coverImageUrl || `https://picsum.photos/seed/${course.id}/600/400`}
                   alt={course.titleHe}
                   className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 opacity-60 group-hover:opacity-100"
                 />

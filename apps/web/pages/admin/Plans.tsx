@@ -3,6 +3,7 @@ import { apiFetch } from '../../lib/api';
 import { PlanAdmin, CourseAdmin } from '../../types';
 import { Loading, ErrorState } from '../../components/Layout';
 import { useUpload } from '../../hooks/useUpload';
+import { hrefs } from '../../lib/routes';
 
 const AdminPlans: React.FC = () => {
     const [plans, setPlans] = useState<PlanAdmin[]>([]);
@@ -127,7 +128,7 @@ const AdminPlans: React.FC = () => {
                         </div>
 
                         <div className="flex gap-2">
-                            <a href={`/#/courses/${selectedCourse}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View course as user">↗</a>
+                            <a href={hrefs.course(selectedCourse)} target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase text-blue-400 hover:text-blue-300 px-2" title="View course as user">↗</a>
                             <button
                                 onClick={() => togglePublish(plan.id, plan.published)}
                                 className={`text-xs font-bold uppercase px-2 ${plan.published ? 'text-yellow-500 hover:text-yellow-400' : 'text-green-500 hover:text-green-400'}`}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { Loading } from '../components/Layout';
+import { routes } from '../lib/routes';
 
 interface CheckoutSessionVerification {
     courseId: string | null;
@@ -178,7 +179,7 @@ const Success: React.FC = () => {
                         </div>
                         <h1 className="text-2xl font-bold text-white mb-2">Verification Failed</h1>
                         <p className="text-gray-400 mb-6">{error}</p>
-                        <Link to="/" className="text-white underline hover:text-gray-300">Return Home</Link>
+                        <Link to={routes.home()} className="text-white underline hover:text-gray-300">Return Home</Link>
                     </>
                 ) : (
                     <>
@@ -209,7 +210,7 @@ const Success: React.FC = () => {
                         <div className="space-y-3">
                             {courseId && !polling && (
                                 <Link
-                                    to={`/courses/${courseId}`}
+                                    to={routes.course(courseId)}
                                     className="block w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
                                 >
                                     Go to course
@@ -217,14 +218,14 @@ const Success: React.FC = () => {
                             )}
 
                             <Link
-                                to="/library"
+                                to={routes.library()}
                                 className={`block w-full border border-white/20 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-white/5 transition-colors ${!courseId || polling ? 'bg-white/5' : ''}`}
                             >
                                 {polling ? 'Go to Library Instead' : 'Go to My Library'}
                             </Link>
 
                             <Link
-                                to="/"
+                                to={routes.home()}
                                 className="block w-full text-gray-500 py-3 rounded-xl text-xs uppercase tracking-widest hover:text-white transition-colors mt-4"
                             >
                                 Back to Home

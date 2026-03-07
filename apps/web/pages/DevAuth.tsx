@@ -2,9 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { apiFetch } from '../lib/api';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { routes } from '../lib/routes';
 
 const DevAuth: React.FC = () => {
   const { uid, isAdmin, login, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnTo = new URLSearchParams(location.search).get('returnTo');
+
   const [inputUid, setInputUid] = useState(uid || '');
   const [inputAdmin, setInputAdmin] = useState(isAdmin);
   const [inputBaseUrl, setInputBaseUrl] = useState('');
@@ -25,7 +31,16 @@ const DevAuth: React.FC = () => {
     e.preventDefault();
     localStorage.setItem('apiBaseUrl', inputBaseUrl.trim());
     localStorage.setItem('mockMode', mockMode ? '1' : '0');
-    login(inputUid, inputAdmin);
+
+    // Manually set local storage to avoid useAuth's reload
+    localStorage.setItem('debugUid', inputUid);
+    localStorage.setItem('debugAdmin', inputAdmin ? '1' : '0');
+
+    if (returnTo) {
+      navigate(returnTo, { replace: true });
+    } else {
+      navigate(routes.home(), { replace: true });
+    }
   };
 
   const handleClear = () => {
